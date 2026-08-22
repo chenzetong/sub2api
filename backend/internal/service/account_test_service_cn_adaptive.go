@@ -62,7 +62,7 @@ func (s *AccountTestService) testCNProviderAdaptiveAnthropicConnection(c *gin.Co
 	}
 	apiURL := strings.TrimRight(baseURL, "/") + "/v1/messages"
 
-	payload, err := createTestPayload(testModelID)
+	payload, err := createTestPayload(testModelID, "")
 	if err != nil {
 		return s.sendErrorAndEnd(c, "Failed to create adaptive Anthropic test payload")
 	}
@@ -157,7 +157,7 @@ func (s *AccountTestService) testCNProviderAdaptiveResponsesConnection(c *gin.Co
 	}
 	apiURL := buildOpenAIResponsesURLForPlatform(account.Platform, baseURL)
 
-	payload := createOpenAITestPayload(testModelID, false)
+	payload := createOpenAITestPayload(testModelID, false, "")
 	// DeepSeek's native Responses endpoint is stateless and does not need the
 	// OpenAI probe's synthetic instructions.
 	delete(payload, "instructions")

@@ -213,7 +213,7 @@
 
             <!-- Whitelist Mode -->
             <div v-if="modelRestrictionMode === 'whitelist'">
-              <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" :account-id="account?.id" />
+              <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" :account-id="account?.id" :scope="props.scope" />
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
                 <span v-if="allowedModels.length === 0 && modelMappings.length === 0">{{
@@ -293,6 +293,7 @@
             </div>
 
             <button
+              v-if="!isUserScope"
               type="button"
               @click="addModelMapping"
               class="mb-3 w-full rounded-lg border-2 border-dashed border-gray-300 px-4 py-2 text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-700 dark:border-dark-500 dark:text-gray-400 dark:hover:border-dark-400 dark:hover:text-gray-300"
@@ -642,7 +643,7 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" :account-id="account?.id" />
+            <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" :account-id="account?.id" :scope="props.scope" />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0 && modelMappings.length === 0">{{
@@ -854,7 +855,7 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" :account-id="account?.id" />
+            <ModelWhitelistSelector v-model="allowedModels" :platform="account?.platform || 'anthropic'" :account-id="account?.id" :scope="props.scope" />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0 && modelMappings.length === 0">{{
@@ -1076,7 +1077,7 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" platform="anthropic" />
+            <ModelWhitelistSelector v-model="allowedModels" platform="anthropic" :scope="props.scope" />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0 && modelMappings.length === 0">{{ t('admin.accounts.supportsAllModels') }}</span>
@@ -1507,11 +1508,12 @@
       </div>
 
       <div v-if="!isSparkShadow">
-        <div class="mb-1 flex items-center gap-2">
-          <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
-          <ProxyAdBanner />
-        </div>
-        <ProxySelector v-model="form.proxy_id" :proxies="proxies" />
+        <label class="input-label">{{ t('admin.accounts.proxy') }}</label>
+        <ProxySelector
+          v-model="form.proxy_id"
+          :proxies="compatibleProxies"
+          :test-proxy="isUserScope ? testUserProxy : undefined"
+        />
       </div>
 
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -2649,7 +2651,7 @@
       <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
         <div>
           <label class="input-label">{{ t('common.status') }}</label>
-          <Select v-model="form.status" :options="statusOptions" />
+          <Select v-model="form.status" :options="statusOptions" data-testid="account-status" />
         </div>
 
         <!-- Mixed Scheduling (only for antigravity accounts, read-only in edit mode) -->
@@ -2713,11 +2715,13 @@
 
       <!-- Group Selection - 仅标准模式显示 -->
       <GroupSelector
-        v-if="!authStore.isSimpleMode"
+        v-if="isUserScope || !authStore.isSimpleMode"
         v-model="form.group_ids"
         :groups="groups"
         :platform="account?.platform"
         :mixed-scheduling="mixedScheduling"
+        :owner-user-id="account?.owner_user_id ?? (isUserScope ? authStore.user?.id : null)"
+        enforce-owner
         data-tour="account-form-groups"
       />
 
@@ -2780,6 +2784,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
+import { myResourcesApi } from '@/api/myResources'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
 import type {
   Account,
@@ -2797,7 +2802,6 @@ import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
-import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
@@ -2826,6 +2830,7 @@ import {
   type HeaderOverrideRow
 } from '@/components/account/credentialsBuilder'
 import { formatDateTime, formatDateTimeLocalInput, parseDateTimeLocalInput } from '@/utils/format'
+import { proxiesForAccountScope, toUserAccountPayload } from '@/utils/accountProxyScope'
 import { createStableObjectKeyResolver } from '@/utils/stableObjectKey'
 import { allSelectedGroupsEnableLongContextPricing } from '@/components/account/longContextBilling'
 import { VERTEX_LOCATION_OPTIONS } from '@/constants/account'
@@ -2852,9 +2857,12 @@ interface Props {
   account: Account | null
   proxies: Proxy[]
   groups: AdminGroup[]
+  scope?: 'admin' | 'user'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  scope: 'admin'
+})
 const emit = defineEmits<{
   close: []
   updated: [account: Account]
@@ -2863,6 +2871,22 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const isUserScope = computed(() => props.scope === 'user')
+const compatibleProxies = computed(() =>
+  proxiesForAccountScope(
+    props.proxies,
+    props.scope,
+    props.account?.owner_user_id ?? (isUserScope.value ? authStore.user?.id : null)
+  )
+)
+const testUserProxy = (id: number) => myResourcesApi.proxies.test(id)
+
+const updateScopedAccount = async (id: number, payload: Record<string, unknown>): Promise<Account> => {
+  if (isUserScope.value) {
+    return await myResourcesApi.accounts.update(id, toUserAccountPayload(payload)) as Account
+  }
+  return adminAPI.accounts.update(id, payload)
+}
 
 // Spark 影子账号(parent_account_id 非空):代理恒继承母账号,不可独立编辑(外审 B/P1),
 // 故隐藏代理选择器。
@@ -3169,7 +3193,8 @@ const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OF
 const codexCLIOnlyEnabled = ref(false)
 const codexCLIOnlyAppServerEnabled = ref(false)
 type CodexFingerprintMode = 'off' | 'device' | 'session' | 'full'
-const codexFingerprintMode = ref<CodexFingerprintMode>('off')
+const DEFAULT_CODEX_FINGERPRINT_MODE: CodexFingerprintMode = 'full'
+const codexFingerprintMode = ref<CodexFingerprintMode>(DEFAULT_CODEX_FINGERPRINT_MODE)
 type CodexImageToolMode = 'inherit' | 'enabled' | 'disabled' | 'block'
 const codexImageToolMode = ref<CodexImageToolMode>('inherit')
 type AnthropicAPIKeyAuthScheme = 'x_api_key' | 'authorization_bearer'
@@ -3186,12 +3211,13 @@ const {
   reset: resetQuotaNotify,
 } = useQuotaNotifyState()
 
-// Load global feature states once
-adminAPI.settings.getWebSearchEmulationConfig().then(cfg => {
-  webSearchGlobalEnabled.value = cfg?.enabled === true && (cfg?.providers?.length ?? 0) > 0
-}).catch(() => { webSearchGlobalEnabled.value = false })
-
-loadQuotaNotifyGlobal()
+// Global operator settings are intentionally unavailable in the user scope.
+if (!isUserScope.value) {
+  adminAPI.settings.getWebSearchEmulationConfig().then(cfg => {
+    webSearchGlobalEnabled.value = cfg?.enabled === true && (cfg?.providers?.length ?? 0) > 0
+  }).catch(() => { webSearchGlobalEnabled.value = false })
+  loadQuotaNotifyGlobal()
+}
 const editQuotaLimit = ref<number | null>(null)
 const editQuotaDailyLimit = ref<number | null>(null)
 const editQuotaWeeklyLimit = ref<number | null>(null)
@@ -3202,9 +3228,6 @@ const editWeeklyResetDay = ref<number | null>(null)
 const editWeeklyResetHour = ref<number | null>(null)
 const editResetTimezone = ref<string | null>(null)
 const codexFingerprintModeOptions = computed(() => [
-  { value: 'off' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintOff') },
-  { value: 'device' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintDevice') },
-  { value: 'session' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintSession') },
   { value: 'full' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintFull') },
 ])
 
@@ -3488,7 +3511,7 @@ const form = reactive({
   load_factor: null as number | null,
   priority: 1,
   rate_multiplier: 1,
-  status: 'active' as 'active' | 'inactive' | 'error',
+  status: 'active' as 'active' | 'inactive' | 'disabled' | 'error',
   group_ids: [] as number[],
   expires_at: null as number | null
 })
@@ -3508,10 +3531,15 @@ const handleUpstreamBillingAutoProbeChange = (enabled: boolean) => {
 }
 
 const statusOptions = computed(() => {
-  const options = [
-    { value: 'active', label: t('common.active') },
-    { value: 'inactive', label: t('common.inactive') }
-  ]
+  const options = isUserScope.value
+    ? [
+        { value: 'active', label: t('common.active') },
+        { value: 'disabled', label: t('common.disabled') }
+      ]
+    : [
+        { value: 'active', label: t('common.active') },
+        { value: 'inactive', label: t('common.inactive') }
+      ]
   if (form.status === 'error') {
     options.push({ value: 'error', label: t('admin.accounts.status.error') })
   }
@@ -3596,8 +3624,11 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   form.load_factor = newAccount.load_factor ?? null
   form.priority = newAccount.priority
   form.rate_multiplier = newAccount.rate_multiplier ?? 1
-  form.status = (newAccount.status === 'active' || newAccount.status === 'inactive' || newAccount.status === 'error')
-    ? newAccount.status
+  const accountStatus = newAccount.status === 'inactive' && isUserScope.value
+    ? 'disabled'
+    : newAccount.status
+  form.status = (accountStatus === 'active' || accountStatus === 'inactive' || accountStatus === 'disabled' || accountStatus === 'error')
+    ? accountStatus
     : 'active'
   form.group_ids = newAccount.group_ids || []
   form.expires_at = newAccount.expires_at ?? null
@@ -3643,7 +3674,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   codexCLIOnlyEnabled.value = false
   codexCLIOnlyAppServerEnabled.value = false
-  codexFingerprintMode.value = 'off'
+  codexFingerprintMode.value = DEFAULT_CODEX_FINGERPRINT_MODE
   codexImageToolMode.value = 'inherit'
   anthropicPassthroughEnabled.value = false
   anthropicAPIKeyAuthScheme.value = 'x_api_key'
@@ -3696,11 +3727,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
         extra?.codex_cli_only_allow_app_server === true
     }
     if (newAccount.type === 'oauth') {
-      const fpMode = extra?.codex_fingerprint_mode as string | undefined
-      // 缺省/非法值按 off 呈现，与后端 GetCodexFingerprintMode 的 opt-in 语义一致（#5610）
-      codexFingerprintMode.value = (['off', 'device', 'session', 'full'].includes(fpMode || '')
-        ? fpMode as CodexFingerprintMode
-        : 'off')
+      codexFingerprintMode.value = DEFAULT_CODEX_FINGERPRINT_MODE
     }
     const credentials = newAccount.credentials as Record<string, unknown> | undefined
     const compactMappings = credentials?.compact_model_mapping as Record<string, string> | undefined
@@ -3978,6 +4005,10 @@ const syncFormFromAccount = (newAccount: Account | null) => {
 }
 
 async function loadTLSProfiles() {
+  if (isUserScope.value) {
+    tlsFingerprintProfiles.value = []
+    return
+  }
   try {
     const profiles = await adminAPI.tlsFingerprintProfiles.list()
     tlsFingerprintProfiles.value = profiles.map(p => ({ id: p.id, name: p.name }))
@@ -4044,6 +4075,7 @@ const addAntigravityPresetMapping = (from: string, to: string) => {
 }
 
 const syncAntigravityUpstreamModels = async () => {
+  if (isUserScope.value) return
   if (!props.account?.id || isSyncingAntigravityUpstream.value) return
 
   isSyncingAntigravityUpstream.value = true
@@ -4443,6 +4475,9 @@ const withAntigravityConfirmFlag = (payload: Record<string, unknown>) => {
 }
 
 const ensureAntigravityMixedChannelConfirmed = async (onConfirm: () => Promise<void>): Promise<boolean> => {
+  if (isUserScope.value) {
+    return true
+  }
   if (!needsMixedChannelCheck()) {
     return true
   }
@@ -4489,7 +4524,7 @@ const handleClose = () => {
 const submitUpdateAccount = async (accountID: number, updatePayload: Record<string, unknown>) => {
   submitting.value = true
   try {
-    const updatedAccount = await adminAPI.accounts.update(accountID, withAntigravityConfirmFlag(updatePayload))
+    const updatedAccount = await updateScopedAccount(accountID, withAntigravityConfirmFlag(updatePayload))
     appStore.showSuccess(t('admin.accounts.accountUpdated'))
     emit('updated', updatedAccount)
     handleClose()
@@ -4514,7 +4549,10 @@ const handleSubmit = async () => {
   if (!props.account) return
   const accountID = props.account.id
 
-  if (form.status !== 'active' && form.status !== 'inactive' && form.status !== 'error') {
+  const validStatus = isUserScope.value
+    ? form.status === 'active' || form.status === 'disabled' || form.status === 'error'
+    : form.status === 'active' || form.status === 'inactive' || form.status === 'error'
+  if (!validStatus) {
     appStore.showError(t('admin.accounts.pleaseSelectStatus'))
     return
   }
@@ -5117,14 +5155,8 @@ const handleSubmit = async () => {
         }
       }
 
-      // 指纹收敛模式：默认 off（不写入）；device/session/full 是显式 opt-in，
-      // 必须落键，否则管理员的选择会被后端当作"未设置"而回落到 off（#5610）。
       if (props.account.type === 'oauth') {
-        if (codexFingerprintMode.value !== 'off') {
-          newExtra.codex_fingerprint_mode = codexFingerprintMode.value
-        } else {
-          delete newExtra.codex_fingerprint_mode
-        }
+        newExtra.codex_fingerprint_mode = codexFingerprintMode.value
       }
 
       updatePayload.extra = newExtra

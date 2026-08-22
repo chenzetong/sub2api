@@ -7107,6 +7107,26 @@
 
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">用户资源工作台</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              开启后普通用户和管理员个人区可管理自己的分组、账号、代理、订阅分配和订阅兑换码。
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">启用用户资源</label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  默认关闭，避免升级后立即暴露高风险自助账号池能力。
+                </p>
+              </div>
+              <Toggle v-model="form.enable_user_resources" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
               {{ t('admin.settings.features.availableChannels.title') }}
             </h2>
@@ -9748,6 +9768,7 @@ const form = reactive<SettingsForm>({
   channel_monitor_show_quota: false,
   // Available Channels feature switch
   available_channels_enabled: false,
+  enable_user_resources: false,
   // Model Plaza feature switches + description
   model_plaza_enabled: false,
   model_plaza_require_auth: false,
@@ -11404,6 +11425,7 @@ async function saveSettings() {
       channel_monitor_show_quota: Boolean(form.channel_monitor_show_quota),
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
+      enable_user_resources: form.enable_user_resources,
       // Model Plaza feature switches + description
       model_plaza_enabled: form.model_plaza_enabled,
       model_plaza_require_auth: form.model_plaza_require_auth,

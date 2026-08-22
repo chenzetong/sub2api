@@ -4,19 +4,42 @@
 
 # Sub2API
 
-[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
+Sub2API は [Sub2API](https://github.com/Wei-Shaw/sub2api) の継続的に保守されるフォークです。公式ゲートウェイ機能を維持しながら、ユーザー専用リソースプール、サブスクリプション配布、組み込み Xray プロキシランタイムを追加します。
+
+[![Go](https://img.shields.io/badge/Go-1.26.6-00ADD8.svg)](https://golang.org/)
 [![Vue](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
-
-**サブスクリプションクォータ配分のための AI API ゲートウェイプラットフォーム**
+**Sub2API 向けユーザー専用リソースと Xray プロキシ拡張版**
 
 [English](README.md) | [中文](README_CN.md) | 日本語
 
 </div>
+
+## プロジェクトの位置付け
+
+このリポジトリは独立して保守されており、公式プロジェクトの配布チャネルではありません。公式更新はマージと検証の後に取り込み、更新はこのリポジトリからのみ確認します。
+
+## 公式版との主な違い
+
+| 範囲 | Sub2API の追加機能 |
+|------|--------------------------|
+| ユーザーリソースワークスペース | 一般ユーザーは、自分のグループ、アカウント、プロキシ、割り当て済みサブスクリプション、引換コードを非公開で管理できます。 |
+| グループとアカウントの操作性 | ユーザー向けフォームは管理者ワークフローに合わせ、ルーティング、クォータ、倍率、RPM、インポート、エクスポート、テスト、一括操作を提供します。 |
+| プロキシランタイム | 標準 HTTP/SOCKS と、VMess、VLESS、Trojan、Shadowsocks、Hysteria、TUIC、AnyTLS、Naive、WireGuard などのノードをサポートし、Base64、Clash、sing-box のサブスクリプションを同期できます。 |
+| サブスクリプション配布 | サブスクリプションの直接割り当て、引換コードの配布、繰り返し利用コード、引換詳細をサポートします。 |
+| サブスクリプション状態 | 利用者はアカウントプールの状態を確認し、利用不能なサブスクリプションを解除できます。 |
+| 利用診断 | 自分の利用状況、アカウント利用状況、マスキングされた上流エラーを管理者相当の項目で確認できます。 |
+| 所有権の分離 | 非公開リソースは所有者ごとに分離され、公開プロキシは安全なメタデータだけを公開します。 |
+| 厳格なセッション親和性 | 明示的な `session_id`、`X-Session-Id`、互換会話ヘッダーを 1 つの上流アカウントへ原子的に固定し、利用不能時は別アカウントへ切り替えず失敗させます。 |
+
+ユーザーリソースワークスペースは `enable_user_resources` で制御され、アップグレード後の環境では既定で無効です。
+
+## 現在の開発バージョン
+
+現在のコードベースは上流 `v0.1.179` を基に、上記の拡張機能を統合しています。
 
 ## ⚠️ 重要なお知らせ
 
@@ -195,7 +218,7 @@ Sub2API を拡張・統合するコミュニティプロジェクト:
 
 | コンポーネント | 技術 |
 |-----------|------------|
-| バックエンド | Go 1.26.5, Gin, Ent |
+| バックエンド | Go 1.26.6, Gin, Ent |
 | フロントエンド | Vue 3.4+, Vite 5+, TailwindCSS |
 | データベース | PostgreSQL 15+ |
 | キャッシュ/キュー | Redis 7+ |
@@ -230,7 +253,7 @@ GitHub Releases からビルド済みバイナリをダウンロードするワ�
 #### インストール手順
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash
 ```
 
 スクリプトは以下を実行します:
@@ -280,7 +303,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # アンインストール
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -303,7 +326,7 @@ PostgreSQL と Redis のコンテナを含む Docker Compose でデプロイし�
 mkdir -p sub2api-deploy && cd sub2api-deploy
 
 # デプロイ準備スクリプトをダウンロードして実行
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/docker-deploy.sh | bash
 
 # サービスを起動
 docker compose up -d
@@ -325,7 +348,7 @@ docker compose logs -f sub2api
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api/deploy
 
 # 2. 環境設定ファイルをコピー
@@ -455,7 +478,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple シリコン搭載 Mac と macOS 26 では、Apple `container` 1.1.0 以降を使用して Sub2API、PostgreSQL、Redis の完全なスタックを実行できます:
 
 ```bash
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -481,7 +504,7 @@ cd sub2api/deploy
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api
 
 # 2. pnpm をインストール（未インストールの場合）
@@ -723,6 +746,10 @@ sub2api/
 </a>
 
 ---
+
+## コミュニティへの謝辞
+
+- [LINUX DO](https://linux.do/) - 新しい理想的なコミュニティ。
 
 ## ライセンス
 

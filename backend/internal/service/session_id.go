@@ -12,6 +12,28 @@ import (
 // distinct identifiers can never alias through truncation.
 const maxPersistedSessionIDLength = 255
 
+// strictSessionHashPrefix namespaces client-provided session identifiers whose
+// upstream-account affinity must never be silently moved to another account.
+// Content-derived sticky hashes intentionally remain soft and may still fail over.
+const strictSessionHashPrefix = "strict:v1:"
+
+func markStrictSessionHash(sessionHash string) string {
+	sessionHash = strings.TrimSpace(sessionHash)
+	if sessionHash == "" || IsStrictSessionHash(sessionHash) {
+		return sessionHash
+	}
+	return strictSessionHashPrefix + sessionHash
+}
+
+// IsStrictSessionHash reports whether a sticky cache key was derived from an
+// explicit client session header. OpenAI keys add their own "openai:" namespace
+// before reaching GatewayCache, so accept that wrapper as well.
+func IsStrictSessionHash(sessionHash string) bool {
+	sessionHash = strings.TrimSpace(sessionHash)
+	sessionHash = strings.TrimPrefix(sessionHash, "openai:")
+	return strings.HasPrefix(sessionHash, strictSessionHashPrefix)
+}
+
 // clientSessionIDHeaders extends the OpenAI-compatible sticky-session signals with
 // native protocol identifiers that are safe to persist but must not alter OpenAI
 // scheduling behavior.
@@ -25,9 +47,9 @@ var clientSessionIDHeaders = append(
 // protocol-agnostic and shared by every gateway handler so all supported protocols
 // record session_id through one seam. Returns "" when no valid identifier is present.
 //
-// This value feeds only usage_logs.session_id persistence. It does NOT affect sticky
-// routing, account selection, request_id semantics, or upstream prompt caching, which
-// keep their own (intentionally broader) session-signal resolution.
+// Gateway handlers also copy this sanitized value into SessionContext so an explicit
+// session header receives strict upstream-account affinity. Other consumers use it
+// for usage-log correlation only.
 func ExtractClientSessionID(c *gin.Context) string {
 	if c == nil || c.Request == nil {
 		return ""

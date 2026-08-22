@@ -267,6 +267,17 @@ func shortSessionHash(sessionHash string) string {
 	return sessionHash[:8]
 }
 
+func strictSessionAccountUnavailable(accountID int64, reason string) error {
+	return fmt.Errorf("%w: explicit session is pinned to account %d (%s)", ErrNoAvailableAccounts, accountID, reason)
+}
+
+func strictSessionBindingError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%w: %v", ErrNoAvailableAccounts, err)
+}
+
 func redactAuthHeaderValue(v string) string {
 	v = strings.TrimSpace(v)
 	if v == "" {
@@ -451,6 +462,11 @@ var allowedHeaders = map[string]bool{
 // when no binding exists for the session. It abstracts away the underlying
 // cache implementation (e.g. redis.Nil), mirroring ErrRefreshTokenNotFound.
 var ErrStickySessionNotFound = errors.New("sticky session not found")
+
+// ErrStrictSessionAccountConflict means another request already bound the same
+// explicit client session to a different upstream account. The losing request
+// must stop before forwarding so one session can never span accounts.
+var ErrStrictSessionAccountConflict = errors.New("strict session is already bound to another account")
 
 // ErrReasoningContentNotFound is returned by GatewayCache.GetReasoningContent
 // when no cached reasoning content exists for the reasoning item ID.
@@ -871,7 +887,17 @@ func (s *GatewayService) GenerateSessionHash(parsed *ParsedRequest) string {
 		return ""
 	}
 
-	// 1. 最高优先级：从 metadata.user_id 提取 session_xxx
+	// 1. 最高优先级：客户端显式 session-id。该信号启用严格账号亲和，
+	// 已绑定账号不可用时返回错误，不会把同一会话切换到其他上游账号。
+	if parsed.SessionContext != nil {
+		if sessionID := strings.TrimSpace(parsed.SessionContext.ClientSessionID); sessionID != "" {
+			hash := s.hashContent("client-session:v1:" + sessionID)
+			slog.Info("sticky.hash_source", "source", "client_session_header", "hash", shortSessionHash(hash))
+			return markStrictSessionHash(hash)
+		}
+	}
+
+	// 2. 从 metadata.user_id 提取 session_xxx
 	if parsed.MetadataUserID != "" {
 		uid := ParseMetadataUserID(parsed.MetadataUserID)
 		if uid != nil && uid.SessionID != "" {
@@ -889,7 +915,7 @@ func (s *GatewayService) GenerateSessionHash(parsed *ParsedRequest) string {
 		)
 	}
 
-	// 2. 提取带 cache_control: {type: "ephemeral"} 的内容
+	// 3. 提取带 cache_control: {type: "ephemeral"} 的内容
 	cacheableContent := s.extractCacheableContent(parsed)
 	if cacheableContent != "" {
 		hash := s.hashContent(cacheableContent)
@@ -900,7 +926,7 @@ func (s *GatewayService) GenerateSessionHash(parsed *ParsedRequest) string {
 		return hash
 	}
 
-	// 3. 最后 fallback: 使用 session上下文 + system + 所有消息的完整摘要串
+	// 4. 最后 fallback: 使用 session上下文 + system + 所有消息的完整摘要串
 	var combined strings.Builder
 	// 混入请求上下文区分因子，避免不同用户相同消息产生相同 hash
 	if parsed.SessionContext != nil {
@@ -945,7 +971,7 @@ func (s *GatewayService) BindStickySession(ctx context.Context, groupID *int64, 
 // only after the terminal post-slot check, otherwise a rejected candidate could
 // overwrite a healthy pre-existing sticky binding.
 func (s *GatewayService) bindGatewayStickySessionDuringSelection(ctx context.Context, groupID *int64, sessionHash string, accountID int64) error {
-	if gatewayProfitControlGateActive(ctx) {
+	if gatewayProfitControlGateActive(ctx) && !IsStrictSessionHash(sessionHash) {
 		return nil
 	}
 	return s.BindStickySession(ctx, groupID, sessionHash, accountID)
@@ -961,7 +987,7 @@ func (s *GatewayService) BindStickySessionAfterProfitAdmission(ctx context.Conte
 	if sessionHash == "" || accountID <= 0 || s.cache == nil {
 		return nil
 	}
-	if !gatewayProfitControlGateActive(ctx) {
+	if IsStrictSessionHash(sessionHash) || !gatewayProfitControlGateActive(ctx) {
 		return s.BindStickySession(ctx, groupID, sessionHash, accountID)
 	}
 	existingAccountID, err := s.cache.GetSessionAccountID(ctx, derefGroupID(groupID), sessionHash)

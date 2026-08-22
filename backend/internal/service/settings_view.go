@@ -211,6 +211,8 @@ type SystemSettings struct {
 	// Available Channels feature (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
+	// User-owned resource workspace feature.
+	EnableUserResources bool `json:"enable_user_resources"`
 	// Model Plaza feature (public group/model pricing showcase)
 	ModelPlazaEnabled     bool   `json:"model_plaza_enabled"`
 	ModelPlazaRequireAuth bool   `json:"model_plaza_require_auth"`
@@ -389,6 +391,8 @@ type PublicSettings struct {
 	// Available Channels feature (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
+	// User-owned resource workspace feature.
+	EnableUserResources bool `json:"enable_user_resources"`
 	// Model Plaza feature (public group/model pricing showcase)
 	ModelPlazaEnabled     bool `json:"model_plaza_enabled"`
 	ModelPlazaRequireAuth bool `json:"model_plaza_require_auth"`

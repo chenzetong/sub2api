@@ -271,6 +271,7 @@ export interface PublicSettings {
   /** When true, user monitor shows account quota/balance snapshots (default off). */
   channel_monitor_show_quota?: boolean
   available_channels_enabled: boolean
+  enable_user_resources?: boolean
   model_plaza_enabled: boolean
   model_plaza_require_auth: boolean
   service_quota_enabled: boolean
@@ -547,6 +548,7 @@ export interface ReasoningEffortMapping {
 
 export interface Group {
   id: number
+  owner_user_id?: number | null
   name: string
   description: string | null
   platform: GroupPlatform
@@ -887,7 +889,22 @@ export interface UpdateGroupRequest {
 export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity' | 'grok' | 'kimi' | 'zhipu' | 'deepseek'
 export type AccountType = 'oauth' | 'setup-token' | 'apikey' | 'upstream' | 'bedrock' | 'service_account'
 export type OAuthAddMethod = 'oauth' | 'setup-token'
-export type ProxyProtocol = 'http' | 'https' | 'socks5' | 'socks5h'
+export type ProxyKind = 'standard' | 'xray'
+export type ProxyProtocol =
+  | 'http'
+  | 'https'
+  | 'socks5'
+  | 'socks5h'
+  | 'vmess'
+  | 'vless'
+  | 'trojan'
+  | 'ss'
+  | 'hysteria'
+  | 'hysteria2'
+  | 'tuic'
+  | 'anytls'
+  | 'naive'
+  | 'wireguard'
 
 // Claude Model type (returned by /v1/models and account models API)
 export interface ClaudeModel {
@@ -899,13 +916,19 @@ export interface ClaudeModel {
 
 export interface Proxy {
   id: number
+  owner_user_id?: number | null
+  is_public?: boolean
+  is_owned?: boolean
+  details_hidden?: boolean
   name: string
+  kind: ProxyKind
   protocol: ProxyProtocol
   host: string
   port: number
   username: string | null
   password?: string | null
-  status: 'active' | 'inactive' | 'expired'
+  status: 'active' | 'inactive' | 'disabled' | 'expired'
+  extra?: Record<string, unknown>
   account_count?: number // Number of accounts using this proxy
   latency_ms?: number
   latency_status?: 'success' | 'failed'
@@ -1111,6 +1134,7 @@ export interface OllamaCloudUsageSettings {
 
 export interface Account {
   id: number
+  owner_user_id?: number | null
   name: string
   notes?: string | null
   platform: AccountPlatform
@@ -1149,7 +1173,7 @@ export interface Account {
   scheduler_scores?: AccountSchedulerGroupScore[] | null
   priority: number
   rate_multiplier?: number // Account billing multiplier (>=0, 0 means free)
-  status: 'active' | 'inactive' | 'error'
+  status: 'active' | 'inactive' | 'disabled' | 'error'
   error_message: string | null
   last_used_at: string | null
   expires_at: number | null
@@ -1471,6 +1495,8 @@ export interface CheckMixedChannelResponse {
 
 export interface CreateProxyRequest {
   name: string
+  is_public?: boolean
+  kind?: ProxyKind
   protocol: ProxyProtocol
   host: string
   port: number
@@ -1480,20 +1506,24 @@ export interface CreateProxyRequest {
   fallback_mode?: 'none' | 'proxy' | 'direct'
   backup_proxy_id?: number | null
   expiry_warn_days?: number
+  extra?: Record<string, unknown>
 }
 
 export interface UpdateProxyRequest {
   name?: string
+  is_public?: boolean
+  kind?: ProxyKind
   protocol?: ProxyProtocol
   host?: string
   port?: number
   username?: string | null
   password?: string | null
-  status?: 'active' | 'inactive'
+  status?: 'active' | 'inactive' | 'disabled'
   expires_at?: number | null   // unix 秒；null/0 = 永不过期
   fallback_mode?: 'none' | 'proxy' | 'direct'
   backup_proxy_id?: number | null
   expiry_warn_days?: number
+  extra?: Record<string, unknown>
 }
 
 export interface AdminDataPayload {
@@ -1740,6 +1770,7 @@ export interface UsageCleanupTask {
 
 export interface RedeemCode {
   id: number
+  owner_user_id?: number | null
   code: string
   type: RedeemCodeType
   value: number
@@ -1752,6 +1783,8 @@ export interface RedeemCode {
   notes?: string
   group_id?: number | null // 订阅类型专用
   validity_days?: number // 订阅类型专用
+  max_uses: number
+  used_count: number
   user?: User
   group?: Group // 关联的分组
 }
@@ -1982,6 +2015,8 @@ export interface UserSubscription {
   daily_usage_usd: number
   weekly_usage_usd: number
   monthly_usage_usd: number
+  managed_by_user_id?: number | null
+  source_type?: string
   daily_window_start: string | null
   weekly_window_start: string | null
   monthly_window_start: string | null
@@ -1991,6 +2026,23 @@ export interface UserSubscription {
   expires_at: string | null
   user?: User
   group?: Group
+  pool_health?: SubscriptionPoolHealth
+}
+
+export interface SubscriptionPoolHealth {
+  group_id: number
+  available: number
+  rate_limited: number
+  error: number
+  disabled: number
+  total: number
+  reasons?: Array<{
+    account_id: number
+    name: string
+    status: string
+    reason: string
+  }>
+  by_status?: Record<string, number>
 }
 
 export interface SubscriptionProgress {

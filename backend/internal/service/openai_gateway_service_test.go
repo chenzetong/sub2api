@@ -407,7 +407,7 @@ func TestOpenAIGatewayService_ClientSessionHeaderPriority(t *testing.T) {
 	body := []byte(`{"prompt_cache_key":"body-session"}`)
 	for _, header := range headers {
 		require.Equal(t, header.value, svc.ExtractSessionID(c, body), header.name)
-		require.Equal(t, fmt.Sprintf("%016x", xxhash.Sum64String(header.value)), svc.GenerateExplicitSessionHash(c, body), header.name)
+		require.Equal(t, markStrictSessionHash(fmt.Sprintf("%016x", xxhash.Sum64String(header.value))), svc.GenerateExplicitSessionHash(c, body), header.name)
 		if header.name != grokConversationIDHeader {
 			require.Equal(t, header.value, explicitOpenAISessionID(c, body), header.name)
 		}
@@ -445,7 +445,7 @@ func TestOpenAIGatewayService_GenerateSessionHash_UsesXXHash64(t *testing.T) {
 	svc := &OpenAIGatewayService{}
 
 	got := svc.GenerateSessionHash(c, nil)
-	want := fmt.Sprintf("%016x", xxhash.Sum64String("sess-fixed-value"))
+	want := markStrictSessionHash(fmt.Sprintf("%016x", xxhash.Sum64String("sess-fixed-value")))
 	require.Equal(t, want, got)
 }
 
@@ -577,7 +577,7 @@ func TestOpenAIGatewayService_GenerateExplicitSessionHash_SkipsContentFallback(t
 		c.Request.Header.Set("session_id", "header-session")
 
 		got := svc.GenerateExplicitSessionHash(c, []byte(`{"prompt_cache_key":"body-session"}`))
-		require.Equal(t, fmt.Sprintf("%016x", xxhash.Sum64String("header-session")), got)
+		require.Equal(t, markStrictSessionHash(fmt.Sprintf("%016x", xxhash.Sum64String("header-session"))), got)
 	})
 }
 
@@ -687,6 +687,9 @@ func (c *stubGatewayCache) RefreshSessionTTL(ctx context.Context, groupID int64,
 }
 
 func (c *stubGatewayCache) DeleteSessionAccountID(ctx context.Context, groupID int64, sessionHash string) error {
+	if IsStrictSessionHash(sessionHash) {
+		return nil
+	}
 	if c.sessionBindings == nil {
 		return nil
 	}
@@ -1223,6 +1226,23 @@ func TestOpenAISelectAccountForModelWithExclusions_StickyExcludedFallback(t *tes
 	if acc == nil || acc.ID != 2 {
 		t.Fatalf("expected account 2")
 	}
+}
+
+func TestOpenAISelectAccountForModelWithExclusions_StrictStickyExcludedRejectsFallback(t *testing.T) {
+	sessionHash := markStrictSessionHash("excluded")
+	repo := stubOpenAIAccountRepo{
+		accounts: []Account{
+			{ID: 1, Platform: PlatformOpenAI, Status: StatusActive, Schedulable: true, Concurrency: 1, Priority: 1},
+			{ID: 2, Platform: PlatformOpenAI, Status: StatusActive, Schedulable: true, Concurrency: 1, Priority: 2},
+		},
+	}
+	cache := &stubGatewayCache{sessionBindings: map[string]int64{"openai:" + sessionHash: 1}}
+	svc := &OpenAIGatewayService{accountRepo: repo, cache: cache}
+
+	acc, err := svc.SelectAccountForModelWithExclusions(context.Background(), nil, sessionHash, "gpt-4", map[int64]struct{}{1: {}})
+	require.Nil(t, acc)
+	require.ErrorIs(t, err, ErrNoAvailableAccounts)
+	require.Equal(t, int64(1), cache.sessionBindings["openai:"+sessionHash])
 }
 
 func TestOpenAISelectAccountForModelWithExclusions_StickyNonOpenAI(t *testing.T) {

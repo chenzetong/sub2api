@@ -722,6 +722,7 @@ export interface SystemSettings {
 
   // Available Channels feature switch
   available_channels_enabled: boolean;
+  enable_user_resources: boolean;
 
   // Model Plaza feature switches + description
   model_plaza_enabled: boolean;
@@ -1021,6 +1022,7 @@ export interface UpdateSettingsRequest {
 
   // Available Channels feature switch
   available_channels_enabled?: boolean;
+  enable_user_resources?: boolean;
 
   // Model Plaza feature switches + description
   model_plaza_enabled?: boolean;

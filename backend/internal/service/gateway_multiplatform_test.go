@@ -2394,6 +2394,31 @@ func TestGatewayService_SelectAccountWithLoadAwareness(t *testing.T) {
 		require.Equal(t, 1, concurrencyCache.loadBatchCalls, "应继续进行负载批量查询")
 	})
 
+	t.Run("显式会话绑定账号不在候选集-拒绝跨账号回退", func(t *testing.T) {
+		strictHash := markStrictSessionHash("sticky")
+		repo := &mockAccountRepoForPlatform{
+			accounts: []Account{
+				{ID: 2, Platform: PlatformAnthropic, Priority: 1, Status: StatusActive, Schedulable: true, Concurrency: 5},
+			},
+			accountsByID: map[int64]*Account{},
+		}
+		repo.accountsByID[2] = &repo.accounts[0]
+		cache := &mockGatewayCacheForPlatform{sessionBindings: map[string]int64{strictHash: 1}}
+		cfg := testConfig()
+		cfg.Gateway.Scheduling.LoadBatchEnabled = true
+		svc := &GatewayService{
+			accountRepo:        repo,
+			cache:              cache,
+			cfg:                cfg,
+			concurrencyService: NewConcurrencyService(&mockConcurrencyCache{}),
+		}
+
+		result, err := svc.SelectAccountWithLoadAwareness(ctx, nil, strictHash, "claude-3-5-sonnet-20241022", nil, "", int64(0))
+		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrNoAvailableAccounts)
+		require.Equal(t, int64(1), cache.sessionBindings[strictHash])
+	})
+
 	t.Run("粘性账号禁用-清理会话并回退选择", func(t *testing.T) {
 		testCtx := context.WithValue(ctx, ctxkey.ForcePlatform, PlatformAnthropic)
 		repo := &mockAccountRepoForPlatform{

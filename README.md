@@ -4,19 +4,42 @@
 
 # Sub2API
 
-[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
+Sub2API is a maintained fork of [Sub2API](https://github.com/Wei-Shaw/sub2api). It keeps upstream gateway capabilities while adding private user resource pools, subscription distribution, and an embedded Xray proxy runtime.
+
+[![Go](https://img.shields.io/badge/Go-1.26.6-00ADD8.svg)](https://golang.org/)
 [![Vue](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
-
-**AI API Gateway Platform for Subscription Quota Distribution**
+**User-owned resources and Xray proxy support for Sub2API**
 
 English | [中文](README_CN.md) | [日本語](README_JA.md)
 
 </div>
+
+## Project Scope
+
+This repository is independently maintained and is not the upstream project's official distribution. Upstream changes are merged deliberately and releases are checked only from this repository.
+
+## Differences from Upstream
+
+| Area | Sub2API additions |
+|------|------------------------|
+| User resource workspace | Users can privately manage their own groups, accounts, proxies, assigned subscriptions, and redeem codes. |
+| Group and account parity | User-facing group and account forms align with the administrator workflow, including routing, quota, multiplier, RPM, import/export, testing, and batch operations. |
+| Proxy runtime | Standard HTTP/SOCKS proxies and Xray-backed VMess, VLESS, Trojan, Shadowsocks, Hysteria, TUIC, AnyTLS, Naive, and WireGuard nodes are supported. Base64, Clash, and sing-box subscription sources can be synchronized. |
+| Subscription distribution | Users can assign subscriptions or distribute subscription redeem codes, including repeatable codes and redemption details. |
+| Subscription health | Subscribers can see account-pool health and unsubscribe from unavailable subscriptions. |
+| Usage diagnostics | Users can inspect their own usage, account usage, and redacted upstream errors with administrator-level detail. |
+| Ownership security | Every private resource is owner-scoped. Public proxies expose only safe metadata, and ordinary users cannot access another user's resource pool. |
+| Strict session affinity | Explicit `session_id`, `X-Session-Id`, and compatible conversation headers are atomically pinned to one upstream account. An unavailable bound account fails closed instead of crossing accounts. |
+
+The user resource workspace is controlled by `enable_user_resources` and is disabled by default on upgraded installations.
+
+## Development Version
+
+The current codebase is based on upstream `v0.1.179` and includes the enhancements listed above.
 
 ## ⚠️ Important Notice
 
@@ -194,7 +217,7 @@ Community projects that extend or integrate with Sub2API:
 
 | Component | Technology |
 |-----------|------------|
-| Backend | Go 1.26.5, Gin, Ent |
+| Backend | Go 1.26.6, Gin, Ent |
 | Frontend | Vue 3.4+, Vite 5+, TailwindCSS |
 | Database | PostgreSQL 15+ |
 | Cache/Queue | Redis 7+ |
@@ -229,7 +252,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -279,7 +302,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # Uninstall
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -302,7 +325,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub2api-deploy && cd sub2api-deploy
 
 # Download and run deployment preparation script
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -324,7 +347,7 @@ If you prefer manual setup:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api/deploy
 
 # 2. Copy environment configuration
@@ -454,7 +477,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple-silicon Macs running macOS 26 can run the full Sub2API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
 
 ```bash
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -480,7 +503,7 @@ Build and run from source code for development or customization.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api
 
 # 2. Install pnpm (if not already installed)
@@ -857,6 +880,10 @@ sub2api/
 </a>
 
 ---
+
+## Community Acknowledgement
+
+- [LINUX DO](https://linux.do/) - A new kind of ideal community.
 
 ## License
 

@@ -110,7 +110,7 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 			return nil, buildErr
 		}
 
-		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
+		resp, err = s.httpUpstream.Do(ProtectUserOwnedUpstreamRequest(upstreamReq, account, proxyURL), proxyURL, account.ID, account.Concurrency)
 		SetOpsLatencyMs(c, OpsUpstreamLatencyMsKey, time.Since(upstreamStart).Milliseconds())
 		if err != nil {
 			return nil, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, false)
@@ -126,7 +126,9 @@ func (s *OpenAIGatewayService) forwardGrokResponses(
 		if resp.Body != nil {
 			_ = resp.Body.Close()
 		}
-		if !isGrokInvalidEncryptedContentResponse(resp.StatusCode, respBody) {
+		retryableEncryptedContent := isGrokInvalidEncryptedContentResponse(resp.StatusCode, respBody) ||
+			(isGrokOpaqueBadRequest(resp.StatusCode, respBody) && requestHasGrokEncryptedReasoning(patchedBody))
+		if !retryableEncryptedContent {
 			resp.Body = io.NopCloser(bytes.NewReader(respBody))
 			break
 		}
@@ -294,6 +296,23 @@ func isGrokInvalidEncryptedContentResponse(statusCode int, body []byte) bool {
 	return strings.Contains(normalizedMessage, "encrypted_content") &&
 		(strings.Contains(normalizedMessage, "decrypt") ||
 			strings.Contains(normalizedMessage, "unmodified"))
+}
+
+func isGrokOpaqueBadRequest(statusCode int, body []byte) bool {
+	if statusCode != http.StatusBadRequest {
+		return false
+	}
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 {
+		return true
+	}
+	if !json.Valid(trimmed) {
+		message := strings.ToLower(strings.TrimSpace(string(trimmed)))
+		return message == "bad request" || message == "400 bad request"
+	}
+	return !gjson.GetBytes(trimmed, "code").Exists() &&
+		!gjson.GetBytes(trimmed, "error").Exists() &&
+		!gjson.GetBytes(trimmed, "message").Exists()
 }
 
 // requestHasGrokEncryptedReasoning reports whether the outbound Responses body
@@ -1146,7 +1165,7 @@ func (s *OpenAIGatewayService) describeGrokComposerImage(
 		proxyURL = account.Proxy.URL()
 	}
 
-	resp, err := s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
+	resp, err := s.httpUpstream.Do(ProtectUserOwnedUpstreamRequest(upstreamReq, account, proxyURL), proxyURL, account.ID, account.Concurrency)
 	if err != nil {
 		return "", OpenAIUsage{}, s.handleOpenAIUpstreamTransportError(ctx, c, account, err, false)
 	}

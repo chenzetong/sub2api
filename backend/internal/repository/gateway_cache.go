@@ -45,6 +45,34 @@ func (c *gatewayCache) GetSessionAccountID(ctx context.Context, groupID int64, s
 
 func (c *gatewayCache) SetSessionAccountID(ctx context.Context, groupID int64, sessionHash string, accountID int64, ttl time.Duration) error {
 	key := buildSessionKey(groupID, sessionHash)
+	if service.IsStrictSessionHash(sessionHash) {
+		claimed, err := c.rdb.SetNX(ctx, key, accountID, ttl).Result()
+		if err != nil {
+			return err
+		}
+		if claimed {
+			return nil
+		}
+		existingAccountID, err := c.rdb.Get(ctx, key).Int64()
+		if errors.Is(err, redis.Nil) {
+			// The key expired between SETNX and GET. Retry the atomic claim once.
+			claimed, err = c.rdb.SetNX(ctx, key, accountID, ttl).Result()
+			if err != nil {
+				return err
+			}
+			if claimed {
+				return nil
+			}
+			existingAccountID, err = c.rdb.Get(ctx, key).Int64()
+		}
+		if err != nil {
+			return err
+		}
+		if existingAccountID != accountID {
+			return fmt.Errorf("%w: bound_account_id=%d requested_account_id=%d", service.ErrStrictSessionAccountConflict, existingAccountID, accountID)
+		}
+		return c.rdb.Expire(ctx, key, ttl).Err()
+	}
 	return c.rdb.Set(ctx, key, accountID, ttl).Err()
 }
 
@@ -61,6 +89,9 @@ func (c *gatewayCache) RefreshSessionTTL(ctx context.Context, groupID int64, ses
 // Called when the bound account becomes unavailable (e.g., error status, disabled,
 // or unschedulable), allowing subsequent requests to select a new available account.
 func (c *gatewayCache) DeleteSessionAccountID(ctx context.Context, groupID int64, sessionHash string) error {
+	if service.IsStrictSessionHash(sessionHash) {
+		return nil
+	}
 	key := buildSessionKey(groupID, sessionHash)
 	return c.rdb.Del(ctx, key).Err()
 }

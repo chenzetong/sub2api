@@ -99,6 +99,13 @@ func explicitOpenAIRequestSessionID(c *gin.Context, body []byte) string {
 	return sessionID
 }
 
+func hasStrictOpenAIHeaderSession(c *gin.Context) bool {
+	if strings.TrimSpace(explicitOpenAIHeaderSessionID(c)) != "" {
+		return true
+	}
+	return c != nil && isGrokRequestContext(c) && strings.TrimSpace(c.GetHeader(grokConversationIDHeader)) != ""
+}
+
 // grokPreviousResponseSessionSeed returns a stable sticky seed from a Responses
 // previous_response_id. Only resp_* response ids are accepted; message ids and
 // unknown shapes must not pin sticky routing or prompt-cache identity.
@@ -118,12 +125,17 @@ func grokPreviousResponseSessionSeed(body []byte) string {
 // client session signals. It intentionally skips content-derived fallback and is
 // used by stateless endpoints such as /v1/images.
 func (s *OpenAIGatewayService) GenerateExplicitSessionHash(c *gin.Context, body []byte) string {
+	strict := hasStrictOpenAIHeaderSession(c)
 	sessionID := explicitOpenAIRequestSessionID(c, body)
 	if sessionID == "" {
 		return ""
 	}
 
 	currentHash, legacyHash := deriveOpenAISessionHashes(sessionID)
+	if strict {
+		currentHash = markStrictSessionHash(currentHash)
+		legacyHash = markStrictSessionHash(legacyHash)
+	}
 	attachOpenAILegacySessionHashToGin(c, legacyHash)
 	return currentHash
 }
@@ -150,6 +162,7 @@ func (s *OpenAIGatewayService) GenerateSessionHash(c *gin.Context, body []byte) 
 		return ""
 	}
 
+	strict := hasStrictOpenAIHeaderSession(c)
 	sessionID := explicitOpenAIRequestSessionID(c, body)
 	if sessionID == "" && len(body) > 0 {
 		sessionID = deriveOpenAIContentSessionSeed(body)
@@ -163,6 +176,10 @@ func (s *OpenAIGatewayService) GenerateSessionHash(c *gin.Context, body []byte) 
 	}
 
 	currentHash, legacyHash := deriveOpenAISessionHashes(sessionID)
+	if strict {
+		currentHash = markStrictSessionHash(currentHash)
+		legacyHash = markStrictSessionHash(legacyHash)
+	}
 	attachOpenAILegacySessionHashToGin(c, legacyHash)
 	return currentHash
 }
@@ -734,6 +751,9 @@ func resolveOpenAIAccountUpstreamModelForRequest(account *Account, requestedMode
 
 func (s *OpenAIGatewayService) selectAccountForModelWithExclusions(ctx context.Context, groupID *int64, platform string, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}, requireCompact bool, stickyAccountID int64, requiredCapability OpenAIEndpointCapability, preferLowUpstreamRate bool) (*Account, error) {
 	platform = NormalizeOpenAICompatiblePlatform(platform)
+	if IsStrictSessionHash(sessionHash) && stickyAccountID <= 0 {
+		stickyAccountID, _ = s.getStickySessionAccountID(ctx, groupID, sessionHash)
+	}
 	if s.checkChannelPricingRestriction(ctx, groupID, requestedModel) {
 		slog.Warn("channel pricing restriction blocked request",
 			"group_id", derefGroupID(groupID),
@@ -745,6 +765,9 @@ func (s *OpenAIGatewayService) selectAccountForModelWithExclusions(ctx context.C
 	// Try sticky session hit
 	if account := s.tryStickySessionHit(ctx, groupID, platform, sessionHash, requestedModel, excludedIDs, requireCompact, stickyAccountID, requiredCapability); account != nil {
 		return account, nil
+	}
+	if IsStrictSessionHash(sessionHash) && stickyAccountID > 0 {
+		return nil, strictSessionAccountUnavailable(stickyAccountID, "bound OpenAI account is unavailable")
 	}
 
 	// 2. 获取可调度的 OpenAI 账号
@@ -770,8 +793,12 @@ func (s *OpenAIGatewayService) selectAccountForModelWithExclusions(ctx context.C
 	// 4. 设置粘性会话绑定（利润门下推迟到 handler 终检通过后再绑定，
 	// 终检否决的账号不得成为新的粘性目标；无门保持既有 eager 绑定与 TTL）
 	// Set sticky session binding (deferred until terminal admission under a profit gate)
-	if sessionHash != "" && !gatewayProfitControlGateActive(ctx) {
-		_ = s.setStickySessionAccountID(ctx, groupID, sessionHash, selected.ID, openaiStickySessionTTL)
+	if sessionHash != "" && (!gatewayProfitControlGateActive(ctx) || IsStrictSessionHash(sessionHash)) {
+		if bindErr := s.setStickySessionAccountID(ctx, groupID, sessionHash, selected.ID, openaiStickySessionTTL); bindErr != nil {
+			if IsStrictSessionHash(sessionHash) {
+				return nil, strictSessionBindingError(bindErr)
+			}
+		}
 	}
 
 	return hydrated, nil
@@ -1073,6 +1100,9 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 			}
 		}
 	}
+	if IsStrictSessionHash(sessionHash) && stickyAccountID > 0 {
+		return nil, strictSessionAccountUnavailable(stickyAccountID, "bound OpenAI account failed a scheduling or concurrency gate")
+	}
 
 	// ============ Layer 2: Load-aware selection ============
 	// Per-pass parent-health cache to avoid repeated DB calls when multiple shadow
@@ -1213,8 +1243,13 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 				if selectErr != nil {
 					return nil, true, selectErr
 				}
-				if sessionHash != "" && !gatewayProfitControlGateActive(ctx) {
-					_ = s.setStickySessionAccountID(ctx, groupID, sessionHash, fresh.ID, openaiStickySessionTTL)
+				if sessionHash != "" && (!gatewayProfitControlGateActive(ctx) || IsStrictSessionHash(sessionHash)) {
+					if bindErr := s.setStickySessionAccountID(ctx, groupID, sessionHash, fresh.ID, openaiStickySessionTTL); bindErr != nil && IsStrictSessionHash(sessionHash) {
+						if selection.ReleaseFunc != nil {
+							selection.ReleaseFunc()
+						}
+						return nil, true, strictSessionBindingError(bindErr)
+					}
 				}
 				return selection, true, nil
 			}
@@ -1252,8 +1287,13 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 				if selectErr != nil {
 					return nil, selectErr
 				}
-				if sessionHash != "" && !gatewayProfitControlGateActive(ctx) {
-					_ = s.setStickySessionAccountID(ctx, groupID, sessionHash, fresh.ID, openaiStickySessionTTL)
+				if sessionHash != "" && (!gatewayProfitControlGateActive(ctx) || IsStrictSessionHash(sessionHash)) {
+					if bindErr := s.setStickySessionAccountID(ctx, groupID, sessionHash, fresh.ID, openaiStickySessionTTL); bindErr != nil && IsStrictSessionHash(sessionHash) {
+						if selection.ReleaseFunc != nil {
+							selection.ReleaseFunc()
+						}
+						return nil, strictSessionBindingError(bindErr)
+					}
 				}
 				return selection, nil
 			}
@@ -1295,6 +1335,11 @@ func (s *OpenAIGatewayService) selectAccountWithLoadAwareness(ctx context.Contex
 		}
 		if needsUpstreamCheck && s.isUpstreamModelRestrictedByChannel(ctx, *groupID, fresh, requestedModel, requireCompact) {
 			continue
+		}
+		if IsStrictSessionHash(sessionHash) {
+			if bindErr := s.setStickySessionAccountID(ctx, groupID, sessionHash, fresh.ID, openaiStickySessionTTL); bindErr != nil {
+				return nil, strictSessionBindingError(bindErr)
+			}
 		}
 		return s.newSelectionResult(ctx, fresh, false, nil, &AccountWaitPlan{
 			AccountID:      fresh.ID,

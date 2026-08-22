@@ -34,6 +34,7 @@ backend/.gocache/
 node_modules/
 frontend/node_modules/
 frontend/dist/
+/.pnpm-store/
 *.local
 *.tsbuildinfo
 vite.config.d.ts
@@ -138,11 +139,16 @@ docs/*
 !docs/ASYNC_IMAGE_TASKS.md
 !docs/legal/
 !docs/legal/*.md
+!docs/releases/
+!docs/releases/*.md
 .serena/
 .codex/
 frontend/coverage/
 aicodex
 output/
 
+# Local review/deployment artifacts (may contain environment-specific data)
+/artifacts/
+/deploy/docker-compose.review.yml
 # Vitest / Vite cache at repo root
 .vite/

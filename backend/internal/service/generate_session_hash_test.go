@@ -92,6 +92,17 @@ func TestGenerateSessionHash_MetadataHasHighestPriority(t *testing.T) {
 	require.Equal(t, "123e4567-e89b-12d3-a456-426614174000", hash, "metadata session_id should have highest priority")
 }
 
+func TestGenerateSessionHash_ExplicitClientSessionHasStrictHighestPriority(t *testing.T) {
+	svc := &GatewayService{}
+	first := mustParseSessionHashRequest(t, `{"metadata":{"user_id":"session_metadata"},"messages":[{"role":"user","content":"first"}]}`, &SessionContext{ClientSessionID: "client-session-42", APIKeyID: 1})
+	second := mustParseSessionHashRequest(t, `{"metadata":{"user_id":"session_other"},"messages":[{"role":"user","content":"different"}]}`, &SessionContext{ClientSessionID: "client-session-42", APIKeyID: 1})
+
+	firstHash := svc.GenerateSessionHash(first)
+	secondHash := svc.GenerateSessionHash(second)
+	require.True(t, IsStrictSessionHash(firstHash))
+	require.Equal(t, firstHash, secondHash)
+}
+
 func TestGenerateSessionHash_SystemPlusMessages(t *testing.T) {
 	svc := &GatewayService{}
 	withSystem := mustParseSessionHashRequest(t, anthropicSessionBody("You are a helpful assistant.", []any{msg("user", "hello")}, ""), nil)

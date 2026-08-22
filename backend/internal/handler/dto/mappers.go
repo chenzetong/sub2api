@@ -175,6 +175,7 @@ func GroupFromServiceAdmin(g *service.Group) *AdminGroup {
 func groupFromServiceBase(g *service.Group) Group {
 	return Group{
 		ID:                              g.ID,
+		OwnerUserID:                     g.OwnerUserID,
 		Name:                            g.Name,
 		Description:                     g.Description,
 		Platform:                        g.Platform,
@@ -237,6 +238,7 @@ func AccountFromServiceShallow(a *service.Account) *Account {
 	}
 	out := &Account{
 		ID:                      a.ID,
+		OwnerUserID:             a.OwnerUserID,
 		Name:                    a.Name,
 		Notes:                   a.Notes,
 		Platform:                a.Platform,
@@ -471,6 +473,8 @@ func ProxyFromService(p *service.Proxy) *Proxy {
 	return &Proxy{
 		ID:             p.ID,
 		Name:           p.Name,
+		Kind:           p.Kind,
+		IsPublic:       p.IsPublic,
 		Protocol:       p.Protocol,
 		Host:           p.Host,
 		Port:           p.Port,
@@ -519,8 +523,10 @@ func ProxyFromServiceAdmin(p *service.Proxy) *AdminProxy {
 		return nil
 	}
 	return &AdminProxy{
-		Proxy:    *base,
-		Password: p.Password,
+		Proxy:       *base,
+		OwnerUserID: p.OwnerUserID,
+		Password:    p.Password,
+		Extra:       p.Extra,
 	}
 }
 
@@ -581,8 +587,9 @@ func RedeemCodeFromServiceAdmin(rc *service.RedeemCode) *AdminRedeemCode {
 		return nil
 	}
 	return &AdminRedeemCode{
-		RedeemCode: redeemCodeFromServiceBase(rc),
-		Notes:      rc.Notes,
+		RedeemCode:  redeemCodeFromServiceBase(rc),
+		OwnerUserID: rc.OwnerUserID,
+		Notes:       rc.Notes,
 	}
 }
 
@@ -599,6 +606,8 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 		ExpiresAt:    rc.ExpiresAt,
 		GroupID:      rc.GroupID,
 		ValidityDays: rc.ValidityDays,
+		MaxUses:      max(rc.MaxUses, 1),
+		UsedCount:    rc.UsedCount,
 		User:         UserFromServiceShallow(rc.User),
 		Group:        GroupFromServiceShallow(rc.Group),
 	}
@@ -613,6 +622,19 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 	}
 
 	return out
+}
+
+func RedeemCodeUsageFromService(usage *service.RedeemCodeUsage) *RedeemCodeUsage {
+	if usage == nil {
+		return nil
+	}
+	return &RedeemCodeUsage{
+		ID:           usage.ID,
+		RedeemCodeID: usage.RedeemCodeID,
+		UserID:       usage.UserID,
+		UsedAt:       usage.UsedAt,
+		User:         UserFromServiceShallow(usage.User),
+	}
 }
 
 // AccountSummaryFromService returns a minimal AccountSummary for usage log display.
@@ -812,6 +834,8 @@ func userSubscriptionFromServiceBase(sub *service.UserSubscription) UserSubscrip
 		DailyUsageUSD:      sub.DailyUsageUSD,
 		WeeklyUsageUSD:     sub.WeeklyUsageUSD,
 		MonthlyUsageUSD:    sub.MonthlyUsageUSD,
+		ManagedByUserID:    sub.ManagedByUserID,
+		SourceType:         sub.SourceType,
 		CreatedAt:          sub.CreatedAt,
 		UpdatedAt:          sub.UpdatedAt,
 		RevokedAt:          sub.DeletedAt,

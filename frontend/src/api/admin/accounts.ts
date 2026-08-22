@@ -44,6 +44,7 @@ export async function list(
     group?: string
     search?: string
     privacy_mode?: string
+    owner_scope?: 'system' | 'user'
     lite?: string
     include_scheduler_score?: string
     sort_by?: string
@@ -80,6 +81,7 @@ export async function listWithEtag(
     group?: string
     search?: string
     privacy_mode?: string
+    owner_scope?: 'system' | 'user'
     lite?: string
     include_scheduler_score?: string
     sort_by?: string

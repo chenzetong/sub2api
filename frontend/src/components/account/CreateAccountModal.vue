@@ -1402,7 +1402,7 @@
 
             <!-- Whitelist Mode -->
             <div v-if="modelRestrictionMode === 'whitelist'">
-              <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" :sync-credentials="syncPreviewCredentials" />
+              <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" :scope="props.scope" :sync-credentials="syncPreviewCredentials" />
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
                 <span v-if="allowedModels.length === 0">{{
@@ -1884,7 +1884,7 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" platform="anthropic" :sync-credentials="syncPreviewCredentials" />
+            <ModelWhitelistSelector v-model="allowedModels" platform="anthropic" :scope="props.scope" :sync-credentials="syncPreviewCredentials" />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{ t('admin.accounts.supportsAllModels') }}</span>
@@ -2220,7 +2220,7 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" :sync-credentials="syncPreviewCredentials" />
+            <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" :scope="props.scope" :sync-credentials="syncPreviewCredentials" />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{
@@ -2870,11 +2870,12 @@
       </div>
 
       <div>
-        <div class="mb-1 flex items-center gap-2">
-          <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
-          <ProxyAdBanner />
-        </div>
-        <ProxySelector v-model="form.proxy_id" :proxies="proxies" />
+        <label class="input-label">{{ t('admin.accounts.proxy') }}</label>
+        <ProxySelector
+          v-model="form.proxy_id"
+          :proxies="compatibleProxies"
+          :test-proxy="isUserScope ? testUserProxy : undefined"
+        />
       </div>
 
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -3347,11 +3348,13 @@
 
         <!-- Group Selection - 仅标准模式显示 -->
         <GroupSelector
-          v-if="!authStore.isSimpleMode"
+          v-if="isUserScope || !authStore.isSimpleMode"
           v-model="form.group_ids"
           :groups="groups"
           :platform="form.platform"
           :mixed-scheduling="mixedScheduling"
+          :owner-user-id="isUserScope ? authStore.user?.id : null"
+          enforce-owner
           data-tour="account-form-groups"
         />
       </div>
@@ -3371,14 +3374,14 @@
         :show-proxy-warning="form.platform !== 'openai' && form.platform !== 'grok' && !!form.proxy_id"
         :allow-multiple="form.platform === 'anthropic'"
         :show-cookie-option="form.platform === 'anthropic'"
-        :show-refresh-token-option="form.platform === 'openai' || form.platform === 'antigravity' || form.platform === 'grok'"
-        :show-mobile-refresh-token-option="form.platform === 'openai'"
+        :show-refresh-token-option="!isUserScope && (form.platform === 'openai' || form.platform === 'antigravity' || form.platform === 'grok')"
+        :show-mobile-refresh-token-option="!isUserScope && form.platform === 'openai'"
         :show-session-token-option="false"
         :show-access-token-option="false"
         :show-codex-session-import-option="form.platform === 'openai'"
-        :show-agent-identity-option="form.platform === 'openai'"
+        :show-agent-identity-option="!isUserScope && form.platform === 'openai'"
         :show-codex-pat-option="form.platform === 'openai'"
-        :show-sso-option="form.platform === 'grok'"
+        :show-sso-option="!isUserScope && form.platform === 'grok'"
         :show-email-password-option="false"
         :show-manual-option="true"
         :initial-input-method="'manual'"
@@ -3724,6 +3727,7 @@ import {
 } from '@/composables/useModelWhitelist'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
+import { myResourcesApi } from '@/api/myResources'
 import { useQuotaNotifyState } from '@/composables/useQuotaNotifyState'
 import {
   useAccountOAuth,
@@ -3741,7 +3745,9 @@ import type {
   AccountType,
   CheckMixedChannelResponse,
   CreateAccountRequest,
+  CodexSessionImportRequest,
   CodexSessionImportMessage,
+  OpenAICodexPATCreateRequest,
   OpenAICompactMode,
   OpenAIResponsesMode,
   OpenAIEndpointCapability
@@ -3752,7 +3758,6 @@ import Select from '@/components/common/Select.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Icon from '@/components/icons/Icon.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
-import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
 import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import QuotaLimitCard from '@/components/account/QuotaLimitCard.vue'
@@ -3775,6 +3780,7 @@ import {
   type HeaderOverrideRow
 } from '@/components/account/credentialsBuilder'
 import { formatDateTimeLocalInput, parseDateTimeLocalInput } from '@/utils/format'
+import { proxiesForAccountScope, toUserAccountPayload } from '@/utils/accountProxyScope'
 import { createStableObjectKeyResolver } from '@/utils/stableObjectKey'
 import { VERTEX_LOCATION_OPTIONS } from '@/constants/account'
 import {
@@ -3870,15 +3876,48 @@ interface Props {
   show: boolean
   proxies: Proxy[]
   groups: AdminGroup[]
+  scope?: 'admin' | 'user'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  scope: 'admin'
+})
 const emit = defineEmits<{
   close: []
   created: []
 }>()
 
 const appStore = useAppStore()
+const isUserScope = computed(() => props.scope === 'user')
+const compatibleProxies = computed(() =>
+  proxiesForAccountScope(
+    props.proxies,
+    props.scope,
+    isUserScope.value ? authStore.user?.id : null
+  )
+)
+const testUserProxy = (id: number) => myResourcesApi.proxies.test(id)
+
+const createScopedAccount = async (payload: CreateAccountRequest) => {
+  if (isUserScope.value) {
+    return myResourcesApi.accounts.create(toUserAccountPayload(payload))
+  }
+  return adminAPI.accounts.create(payload)
+}
+
+const importScopedCodexSession = async (payload: CodexSessionImportRequest): Promise<any> => {
+  if (isUserScope.value) {
+    return myResourcesApi.accounts.importCodexSessions(toUserAccountPayload(payload))
+  }
+  return adminAPI.accounts.importCodexSession(payload)
+}
+
+const importScopedCodexPAT = async (payload: OpenAICodexPATCreateRequest): Promise<any> => {
+  if (isUserScope.value) {
+    return myResourcesApi.accounts.importCodexPAT(toUserAccountPayload(payload))
+  }
+  return adminAPI.accounts.createOpenAICodexPAT(payload)
+}
 
 const hideAccountLongContextBilling = computed(() => {
   return allSelectedGroupsEnableLongContextPricing(form.group_ids, props.groups)
@@ -3887,7 +3926,7 @@ const hideAccountLongContextBilling = computed(() => {
 // OAuth composables
 const oauth = useAccountOAuth() // For Anthropic OAuth
 const openaiOAuth = useOpenAIOAuth() // For OpenAI OAuth
-const geminiOAuth = useGeminiOAuth() // For Gemini OAuth
+const geminiOAuth = useGeminiOAuth({ scope: props.scope }) // For Gemini OAuth
 const antigravityOAuth = useAntigravityOAuth() // For Antigravity OAuth
 const grokOAuth = useGrokOAuth() // For Grok OAuth
 
@@ -4172,11 +4211,9 @@ const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OF
 const codexCLIOnlyEnabled = ref(false)
 const codexCLIOnlyAppServerEnabled = ref(false)
 type CodexFingerprintMode = 'off' | 'device' | 'session' | 'full'
-const codexFingerprintMode = ref<CodexFingerprintMode>('off')
+const DEFAULT_CODEX_FINGERPRINT_MODE: CodexFingerprintMode = 'full'
+const codexFingerprintMode = ref<CodexFingerprintMode>(DEFAULT_CODEX_FINGERPRINT_MODE)
 const codexFingerprintModeOptions = computed(() => [
-  { value: 'off' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintOff') },
-  { value: 'device' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintDevice') },
-  { value: 'session' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintSession') },
   { value: 'full' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintFull') },
 ])
 type AnthropicAPIKeyAuthScheme = 'x_api_key' | 'authorization_bearer'
@@ -4196,12 +4233,13 @@ const {
   writeToExtra: writeQuotaNotifyToExtra,
 } = useQuotaNotifyState()
 
-// Load global feature states once
-adminAPI.settings.getWebSearchEmulationConfig().then(cfg => {
-  webSearchGlobalEnabled.value = cfg?.enabled === true && (cfg?.providers?.length ?? 0) > 0
-}).catch(() => { webSearchGlobalEnabled.value = false })
-
-loadQuotaNotifyGlobal()
+// Global operator settings are intentionally unavailable in the user scope.
+if (!isUserScope.value) {
+  adminAPI.settings.getWebSearchEmulationConfig().then(cfg => {
+    webSearchGlobalEnabled.value = cfg?.enabled === true && (cfg?.providers?.length ?? 0) > 0
+  }).catch(() => { webSearchGlobalEnabled.value = false })
+  loadQuotaNotifyGlobal()
+}
 const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
 const allowOverages = ref(false) // For antigravity accounts: enable AI Credits overages
 const antigravityAccountType = ref<'oauth' | 'upstream'>('oauth') // For antigravity: oauth or upstream
@@ -4512,15 +4550,19 @@ watch(
   (newVal) => {
     if (newVal) {
       // Load TLS fingerprint profiles
-      adminAPI.tlsFingerprintProfiles.list()
-        .then(profiles => { tlsFingerprintProfiles.value = profiles.map(p => ({ id: p.id, name: p.name })) })
-        .catch(() => { tlsFingerprintProfiles.value = [] })
+      if (isUserScope.value) {
+        tlsFingerprintProfiles.value = []
+      } else {
+        adminAPI.tlsFingerprintProfiles.list()
+          .then(profiles => { tlsFingerprintProfiles.value = profiles.map(p => ({ id: p.id, name: p.name })) })
+          .catch(() => { tlsFingerprintProfiles.value = [] })
+      }
       // Modal opened - fill related models
       allowedModels.value = [...getModelsByPlatform(form.platform)]
       // Antigravity: 默认使用映射模式并填充默认映射
       if (form.platform === 'antigravity') {
         antigravityModelRestrictionMode.value = 'mapping'
-        fetchAntigravityDefaultMappings().then(mappings => {
+        fetchAntigravityDefaultMappings(props.scope).then(mappings => {
           antigravityModelMappings.value = [...mappings]
         })
         antigravityWhitelistModels.value = []
@@ -4583,7 +4625,7 @@ watch(
     // Antigravity: 默认使用映射模式并填充默认映射
     if (newPlatform === 'antigravity') {
       antigravityModelRestrictionMode.value = 'mapping'
-      fetchAntigravityDefaultMappings().then(mappings => {
+      fetchAntigravityDefaultMappings(props.scope).then(mappings => {
         antigravityModelMappings.value = [...mappings]
       })
       antigravityWhitelistModels.value = []
@@ -4937,6 +4979,9 @@ const withAntigravityConfirmFlag = (payload: CreateAccountRequest): CreateAccoun
 }
 
 const ensureAntigravityMixedChannelConfirmed = async (onConfirm: () => Promise<void>): Promise<boolean> => {
+  if (isUserScope.value) {
+    return true
+  }
   if (!needsMixedChannelCheck(form.platform)) {
     return true
   }
@@ -4969,8 +5014,9 @@ const ensureAntigravityMixedChannelConfirmed = async (onConfirm: () => Promise<v
 const submitCreateAccount = async (payload: CreateAccountRequest) => {
   submitting.value = true
   try {
-    const account = await adminAPI.accounts.create(withAntigravityConfirmFlag(payload))
+    const account = await createScopedAccount(withAntigravityConfirmFlag(payload))
     if (
+      !isUserScope.value &&
       payload.type === 'apikey' &&
       payload.upstream_billing_probe_enabled === true
     ) {
@@ -5039,7 +5085,7 @@ const resetForm = () => {
 
   antigravityModelRestrictionMode.value = 'mapping'
   antigravityWhitelistModels.value = []
-  fetchAntigravityDefaultMappings().then(mappings => {
+  fetchAntigravityDefaultMappings(props.scope).then(mappings => {
     antigravityModelMappings.value = [...mappings]
   })
   poolModeEnabled.value = false
@@ -5065,7 +5111,7 @@ const resetForm = () => {
   openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   codexCLIOnlyEnabled.value = false
   codexCLIOnlyAppServerEnabled.value = false
-  codexFingerprintMode.value = 'off'
+  codexFingerprintMode.value = DEFAULT_CODEX_FINGERPRINT_MODE
   anthropicPassthroughEnabled.value = false
   anthropicAPIKeyAuthScheme.value = 'x_api_key'
   webSearchEmulationMode.value = 'default'
@@ -5164,13 +5210,7 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
   } else {
     delete extra.codex_cli_only_allow_app_server
   }
-  // 收敛是显式 opt-in：off 即默认值，不落键；device/session/full 必须显式写入，
-  // 否则管理员的选择会被当成默认而丢失（#5610）。
-  if (codexFingerprintMode.value !== 'off') {
-    extra.codex_fingerprint_mode = codexFingerprintMode.value
-  } else {
-    delete extra.codex_fingerprint_mode
-  }
+  extra.codex_fingerprint_mode = codexFingerprintMode.value
   if (openAICompactMode.value !== 'auto') {
     extra.openai_compact_mode = openAICompactMode.value
   } else {
@@ -5554,13 +5594,20 @@ const handleSubmit = async () => {
   }
 
   form.credentials = credentials
-  const extra = buildAnthropicExtra(buildOpenAIExtra())
+  let extra = buildAnthropicExtra(buildOpenAIExtra())
+  if (isUserScope.value && form.platform === 'openai') {
+    extra = {
+      ...(extra || {}),
+      upstream_billing_probe_enabled: upstreamBillingAutoProbeEnabled.value,
+    }
+  }
 
   await doCreateAccount({
     ...form,
     group_ids: form.group_ids,
     extra,
-    upstream_billing_probe_enabled: upstreamBillingAutoProbeEnabled.value,
+    upstream_billing_probe_enabled:
+      !isUserScope.value && form.type === 'apikey' ? upstreamBillingAutoProbeEnabled.value : undefined,
     auto_pause_on_expired: autoPauseOnExpired.value
   })
 }
@@ -5575,7 +5622,65 @@ const goBackToBasicInfo = () => {
   oauthFlowRef.value?.reset()
 }
 
+const userOAuthRefs = () => {
+  switch (form.platform) {
+    case 'openai':
+      return { authUrl: openaiOAuth.authUrl, sessionId: openaiOAuth.sessionId, state: openaiOAuth.oauthState, loading: openaiOAuth.loading, error: openaiOAuth.error }
+    case 'gemini':
+      return { authUrl: geminiOAuth.authUrl, sessionId: geminiOAuth.sessionId, state: geminiOAuth.state, loading: geminiOAuth.loading, error: geminiOAuth.error }
+    case 'antigravity':
+      return { authUrl: antigravityOAuth.authUrl, sessionId: antigravityOAuth.sessionId, state: antigravityOAuth.state, loading: antigravityOAuth.loading, error: antigravityOAuth.error }
+    case 'grok':
+      return { authUrl: grokOAuth.authUrl, sessionId: grokOAuth.sessionId, state: grokOAuth.state, loading: grokOAuth.loading, error: grokOAuth.error }
+    default:
+      return { authUrl: oauth.authUrl, sessionId: oauth.sessionId, state: null, loading: oauth.loading, error: oauth.error }
+  }
+}
+
+const handleUserGenerateUrl = async () => {
+  const refs = userOAuthRefs()
+  refs.loading.value = true
+  refs.error.value = ''
+  refs.authUrl.value = ''
+  refs.sessionId.value = ''
+  if (refs.state) refs.state.value = ''
+  try {
+    const result = await myResourcesApi.accounts.oauth.authURL({
+      platform: form.platform,
+      proxy_id: form.proxy_id || undefined,
+      setup_token: form.platform === 'anthropic' && addMethod.value === 'setup-token',
+      project_id: form.platform === 'gemini' ? oauthFlowRef.value?.projectId || undefined : undefined,
+      oauth_type: form.platform === 'gemini' ? geminiOAuthType.value : undefined,
+      tier_id: form.platform === 'gemini' ? geminiSelectedTier.value : undefined,
+    })
+    refs.authUrl.value = String(result.auth_url || '')
+    refs.sessionId.value = String(result.session_id || '')
+    if (refs.state) {
+      refs.state.value = String(result.state || '')
+      if (!refs.state.value && refs.authUrl.value) {
+        try {
+          refs.state.value = new URL(refs.authUrl.value).searchParams.get('state') || ''
+        } catch {
+          refs.state.value = ''
+        }
+      }
+    }
+    if (!refs.authUrl.value || !refs.sessionId.value) {
+      throw new Error(t('admin.accounts.oauth.authFailed'))
+    }
+  } catch (error: any) {
+    refs.error.value = error.response?.data?.detail || error.message || t('admin.accounts.oauth.authFailed')
+    appStore.showError(refs.error.value)
+  } finally {
+    refs.loading.value = false
+  }
+}
+
 const handleGenerateUrl = async () => {
+  if (isUserScope.value) {
+    await handleUserGenerateUrl()
+    return
+  }
   if (form.platform === 'openai') {
     await openaiOAuth.generateAuthUrl(form.proxy_id)
   } else if (form.platform === 'gemini') {
@@ -5742,7 +5847,7 @@ const handleGrokValidateRT = async (refreshTokenInput: string) => {
           return
         }
 
-        await adminAPI.accounts.create({
+        await createScopedAccount({
           name: accountName,
           notes: form.notes,
           platform: 'grok',
@@ -6018,7 +6123,7 @@ const handleOpenAIExchange = async (authCode: string) => {
     }
 
     if (shouldCreateOpenAI) {
-      await adminAPI.accounts.create({
+      await createScopedAccount({
         name: form.name,
         notes: form.notes,
         platform: 'openai',
@@ -6071,13 +6176,23 @@ const buildOpenAICodexImportCredentialExtras = (): Record<string, unknown> | nul
   return credentials
 }
 
-const formatCodexImportMessages = (messages?: CodexSessionImportMessage[]) => {
+const formatCodexImportMessages = (messages?: Array<CodexSessionImportMessage | string>) => {
   return (messages || [])
     .map((item) => {
+      if (typeof item === 'string') return item
       const name = item.name ? ` ${item.name}` : ''
       return `#${item.index}${name}: ${item.message}`
     })
     .join('\n')
+}
+
+const codexImportCount = (result: Record<string, any>, countKey: string, valueKey: string): number => {
+  const explicit = Number(result[countKey])
+  if (Number.isFinite(explicit)) return explicit
+  const value = result[valueKey]
+  if (Array.isArray(value)) return value.length
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : 0
 }
 
 const isAgentIdentityImportContent = (content: string) => {
@@ -6126,7 +6241,7 @@ const handleOpenAIImportCodexSession = async (content: string) => {
 
   try {
     const extra = buildOpenAICodexImportExtra()
-    const result = await adminAPI.accounts.importCodexSession({
+    const result = await importScopedCodexSession({
       content: trimmed,
       name: form.name,
       notes: form.notes || null,
@@ -6143,15 +6258,19 @@ const handleOpenAIImportCodexSession = async (content: string) => {
       update_existing: true
     })
 
-    const successCount = result.created + result.updated
+    const createdCount = codexImportCount(result, 'created_count', 'created')
+    const updatedCount = codexImportCount(result, 'updated_count', 'updated')
+    const skippedCount = codexImportCount(result, 'skipped_count', 'skipped')
+    const failedCount = codexImportCount(result, 'failed_count', 'failed')
+    const successCount = createdCount + updatedCount
     const params = {
-      created: result.created,
-      updated: result.updated,
-      skipped: result.skipped,
-      failed: result.failed
+      created: createdCount,
+      updated: updatedCount,
+      skipped: skippedCount,
+      failed: failedCount
     }
 
-    if (successCount > 0 && result.failed === 0) {
+    if (successCount > 0 && failedCount === 0) {
       appStore.showSuccess(t('admin.accounts.oauth.openai.codexSessionImportSuccess', params))
       emit('created')
       handleClose()
@@ -6162,7 +6281,7 @@ const handleOpenAIImportCodexSession = async (content: string) => {
     const warningText = formatCodexImportMessages(result.warnings)
     oauthClient.error.value = [errorText, warningText].filter(Boolean).join('\n')
 
-    if (result.failed === 0) {
+    if (failedCount === 0) {
       appStore.showWarning(t('admin.accounts.oauth.openai.codexSessionImportSuccess', params))
       return
     }
@@ -6204,7 +6323,7 @@ const handleOpenAIImportCodexPAT = async (accessToken: string) => {
 
   try {
     const extra = buildOpenAICodexImportExtra()
-    await adminAPI.accounts.createOpenAICodexPAT({
+    await importScopedCodexPAT({
       access_token: trimmed,
       name: form.name,
       notes: form.notes || null,
@@ -6299,7 +6418,7 @@ const handleOpenAIBatchRT = async (refreshTokenInput: string, clientId?: string)
         const accountName = refreshTokens.length > 1 ? `${baseName} #${i + 1}` : baseName
 
         if (shouldCreateOpenAI) {
-          await adminAPI.accounts.create({
+          await createScopedAccount({
             name: accountName,
             notes: form.notes,
             platform: 'openai',
@@ -6414,7 +6533,7 @@ const handleAntigravityValidateRT = async (refreshTokenInput: string) => {
           expires_at: form.expires_at,
           auto_pause_on_expired: autoPauseOnExpired.value
         })
-        await adminAPI.accounts.create(createPayload)
+        await createScopedAccount(createPayload)
         successCount++
       } catch (error: any) {
         failedCount++
@@ -6656,9 +6775,104 @@ const handleAnthropicExchange = async (authCode: string) => {
   }
 }
 
+const buildUserAnthropicOAuthExtra = (base?: Record<string, unknown>): Record<string, unknown> | undefined => {
+  const extra: Record<string, unknown> = { ...(base || {}) }
+  if (windowCostEnabled.value && windowCostLimit.value != null && windowCostLimit.value > 0) {
+    extra.window_cost_limit = windowCostLimit.value
+    extra.window_cost_sticky_reserve = windowCostStickyReserve.value ?? 10
+  }
+  if (sessionLimitEnabled.value && maxSessions.value != null && maxSessions.value > 0) {
+    extra.max_sessions = maxSessions.value
+    extra.session_idle_timeout_minutes = sessionIdleTimeout.value ?? 5
+  }
+  if (rpmLimitEnabled.value) {
+    extra.base_rpm = baseRpm.value != null && baseRpm.value > 0 ? baseRpm.value : 15
+    extra.rpm_strategy = rpmStrategy.value
+    if (rpmStickyBuffer.value != null && rpmStickyBuffer.value > 0) {
+      extra.rpm_sticky_buffer = rpmStickyBuffer.value
+    }
+  }
+  if (userMsgQueueMode.value) extra.user_msg_queue_mode = userMsgQueueMode.value
+  if (tlsFingerprintEnabled.value) {
+    extra.enable_tls_fingerprint = true
+    if (tlsFingerprintProfileId.value) extra.tls_fingerprint_profile_id = tlsFingerprintProfileId.value
+  }
+  if (sessionIdMaskingEnabled.value) extra.session_id_masking_enabled = true
+  if (cacheTTLOverrideEnabled.value) {
+    extra.cache_ttl_override_enabled = true
+    extra.cache_ttl_override_target = cacheTTLOverrideTarget.value
+  }
+  if (customBaseUrlEnabled.value && customBaseUrl.value.trim()) {
+    extra.custom_base_url_enabled = true
+    extra.custom_base_url = customBaseUrl.value.trim()
+  }
+  return Object.keys(extra).length > 0 ? extra : undefined
+}
+
+const handleUserOAuthExchange = async (authCode: string) => {
+  const refs = userOAuthRefs()
+  if (!authCode.trim() || !refs.sessionId.value) return
+
+  refs.loading.value = true
+  refs.error.value = ''
+  try {
+    const state = (oauthFlowRef.value?.oauthState || refs.state?.value || '').trim()
+    const result = await myResourcesApi.accounts.oauth.exchange({
+      platform: form.platform,
+      proxy_id: form.proxy_id || undefined,
+      setup_token: form.platform === 'anthropic' && addMethod.value === 'setup-token',
+      session_id: refs.sessionId.value,
+      code: authCode.trim(),
+      state: state || undefined,
+      oauth_type: form.platform === 'gemini' ? geminiOAuthType.value : undefined,
+      tier_id: form.platform === 'gemini' ? geminiSelectedTier.value : undefined,
+    })
+    const credentials: Record<string, unknown> = { ...(result.credentials || {}) }
+    let extra: Record<string, unknown> | undefined = result.extra ? { ...result.extra } : undefined
+
+    if (form.platform === 'openai') {
+      if (!isOpenAIModelRestrictionDisabled.value) {
+        const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
+      if (modelMapping) credentials.model_mapping = modelMapping
+      }
+      extra = buildOpenAIExtra(extra)
+    } else if (form.platform === 'grok') {
+      if (!validateGrokOAuthUpstreamConfig()) {
+        return
+      }
+      applyGrokOAuthUpstreamConfig(credentials)
+    } else if (form.platform === 'antigravity') {
+      applyAntigravityProjectID(credentials, antigravityProjectId.value, 'create')
+      applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
+      const modelMapping = buildModelMappingObject('mapping', [], antigravityModelMappings.value)
+      if (modelMapping) credentials.model_mapping = modelMapping
+      extra = { ...(extra || {}), ...(buildAntigravityExtra() || {}) }
+    } else if (form.platform === 'anthropic') {
+      applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
+      extra = buildUserAnthropicOAuthExtra(extra)
+    }
+
+    await createAccountAndFinish(
+      form.platform,
+      form.platform === 'anthropic' ? addMethod.value as AccountType : 'oauth',
+      credentials,
+      extra,
+    )
+  } catch (error: any) {
+    refs.error.value = error.response?.data?.detail || error.message || t('admin.accounts.oauth.authFailed')
+    appStore.showError(refs.error.value)
+  } finally {
+    refs.loading.value = false
+  }
+}
+
 // 主入口：根据平台路由到对应处理函数
 const handleExchangeCode = async () => {
   const authCode = oauthFlowRef.value?.authCode || ''
+
+  if (isUserScope.value) {
+    return handleUserOAuthExchange(authCode)
+  }
 
   switch (form.platform) {
     case 'openai':
@@ -6674,7 +6888,67 @@ const handleExchangeCode = async () => {
   }
 }
 
+const handleUserCookieAuth = async (sessionKey: string) => {
+  const keys = oauth.parseSessionKeys(sessionKey)
+  if (keys.length === 0) {
+    oauth.error.value = t('admin.accounts.oauth.pleaseEnterSessionKey')
+    return
+  }
+
+  oauth.loading.value = true
+  oauth.error.value = ''
+  let successCount = 0
+  const errors: string[] = []
+  try {
+    for (let index = 0; index < keys.length; index++) {
+      try {
+        const result = await myResourcesApi.accounts.oauth.cookie({
+          proxy_id: form.proxy_id || undefined,
+          setup_token: addMethod.value === 'setup-token',
+          session_key: keys[index],
+        })
+        const credentials: Record<string, unknown> = { ...(result.credentials || {}) }
+        applyInterceptWarmup(credentials, interceptWarmupRequests.value, 'create')
+        if (!applyTempUnschedConfig(credentials)) return
+        const suggestedName = result.suggested_name || form.name || 'Anthropic Account'
+        await createScopedAccount({
+          name: keys.length > 1 ? `${suggestedName} #${index + 1}` : suggestedName,
+          notes: form.notes,
+          platform: 'anthropic',
+          type: addMethod.value as AccountType,
+          credentials,
+          extra: buildUserAnthropicOAuthExtra(result.extra),
+          proxy_id: form.proxy_id,
+          concurrency: form.concurrency,
+          load_factor: form.load_factor ?? undefined,
+          priority: form.priority,
+          rate_multiplier: form.rate_multiplier,
+          group_ids: form.group_ids,
+          expires_at: form.expires_at,
+          auto_pause_on_expired: autoPauseOnExpired.value,
+        })
+        successCount++
+      } catch (error: any) {
+        errors.push(`#${index + 1}: ${error.response?.data?.detail || error.message || t('admin.accounts.oauth.authFailed')}`)
+      }
+    }
+
+    if (successCount > 0) {
+      appStore.showSuccess(t('admin.accounts.oauth.successCreated', { count: successCount }))
+      emit('created')
+      if (errors.length === 0) handleClose()
+    }
+    oauth.error.value = errors.join('\n')
+  } finally {
+    oauth.loading.value = false
+  }
+}
+
 const handleCookieAuth = async (sessionKey: string) => {
+  if (isUserScope.value) {
+    await handleUserCookieAuth(sessionKey)
+    return
+  }
   oauth.loading.value = true
   oauth.error.value = ''
 
@@ -6779,7 +7053,7 @@ const handleCookieAuth = async (sessionKey: string) => {
           credentials.temp_unschedulable_rules = tempUnschedPayload
         }
 
-        await adminAPI.accounts.create({
+        await createScopedAccount({
           name: accountName,
           notes: form.notes,
           platform: form.platform,

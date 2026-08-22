@@ -4,20 +4,42 @@
 
 # Sub2API
 
-[![Go](https://img.shields.io/badge/Go-1.26.5-00ADD8.svg)](https://golang.org/)
+Sub2API 是 [Sub2API](https://github.com/Wei-Shaw/sub2api) 的持续维护分支。在保留官方网关能力的基础上，新增用户私有资源池、订阅分发和内置 Xray 代理运行时。
+
+[![Go](https://img.shields.io/badge/Go-1.26.6-00ADD8.svg)](https://golang.org/)
 [![Vue](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
-
-**AI API 网关平台 - 订阅配额分发管理**
+**面向 Sub2API 的用户私有资源与 Xray 代理增强版**
 
 [English](README.md) | 中文 | [日本語](README_JA.md)
 
 </div>
 
+## 项目定位
+
+本仓库由独立维护者维护，并非官方项目的发行渠道。官方更新会在合并和验证后引入，版本更新只从本仓库检查。
+
+## 与官方版本的主要差异
+
+| 范围 | Sub2API 新增能力 |
+|------|-----------------------|
+| 用户资源工作台 | 普通用户可以私有管理自己的分组、账号、代理、已分配订阅和兑换码。 |
+| 分组与账号体验 | 用户侧表单与管理员流程对齐，覆盖路由、额度、倍率、RPM、导入导出、测试和批量操作。 |
+| 代理运行时 | 支持标准 HTTP/SOCKS 代理，以及 VMess、VLESS、Trojan、Shadowsocks、Hysteria、TUIC、AnyTLS、Naive、WireGuard 等节点；支持同步 Base64、Clash 和 sing-box 订阅源。 |
+| 订阅分发 | 用户可以直接分配订阅或生成订阅兑换码，支持重复兑换码和兑换详情。 |
+| 订阅健康 | 订阅用户可以查看号池健康状态，并对不可用订阅执行退订。 |
+| 使用诊断 | 用户可以查看自己的调用、账号调用及脱敏后的上游错误，字段与管理员视图对齐。 |
+| 所有权安全 | 私有资源始终按所有者隔离；公开代理只暴露安全元数据，普通用户无法访问其他用户的资源池。 |
+| 严格会话亲和 | 显式 `session_id`、`X-Session-Id` 及兼容会话头会通过原子操作固定到一个上游账号；绑定账号不可用时直接失败，不跨账号重试。 |
+
+用户资源工作台由 `enable_user_resources` 控制，升级后的实例默认关闭，需要管理员确认后启用。
+
+## 当前开发版本
+
+当前代码基于上游 `v0.1.179`，并集成了上表所列增强功能。
 
 ## ⚠️ 重要提醒
 
@@ -196,7 +218,7 @@ Sub2API 是一个 AI API 网关平台，用于分发和管理 AI 产品订阅的
 
 | 组件 | 技术 |
 |------|------|
-| 后端 | Go 1.26.5, Gin, Ent |
+| 后端 | Go 1.26.6, Gin, Ent |
 | 前端 | Vue 3.4+, Vite 5+, TailwindCSS |
 | 数据库 | PostgreSQL 15+ |
 | 缓存/队列 | Redis 7+ |
@@ -231,7 +253,7 @@ Nginx 默认会丢弃名称中含下划线的请求头（如 `session_id`），�
 #### 安装步骤
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash
 ```
 
 脚本会自动：
@@ -281,7 +303,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # 卸载
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -304,7 +326,7 @@ curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install
 mkdir -p sub2api-deploy && cd sub2api-deploy
 
 # 下载并运行部署准备脚本
-curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/docker-deploy.sh | bash
 
 # 启动服务
 docker compose up -d
@@ -326,7 +348,7 @@ docker compose logs -f sub2api
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api/deploy
 
 # 2. 复制环境配置文件
@@ -468,7 +490,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple 芯片 Mac 在 macOS 26 上可使用 Apple `container` 1.1.0 或更高版本运行完整的 Sub2API、PostgreSQL 和 Redis：
 
 ```bash
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -494,7 +516,7 @@ cd sub2api/deploy
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/Wei-Shaw/sub2api.git
+git clone https://github.com/chenzetong/sub2api.git
 cd sub2api
 
 # 2. 安装 pnpm（如果还没有安装）
@@ -767,6 +789,10 @@ sub2api/
 </a>
 
 ---
+
+## 社区致谢
+
+- [LINUX DO](https://linux.do/) - 新的理想型社区。
 
 ## 许可证
 

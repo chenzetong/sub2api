@@ -7,13 +7,21 @@ const {
   probeUpstreamBillingMock,
   importCodexSessionMock,
   createOpenAICodexPATMock,
+  userApiPostMock,
   authIsSimpleMode,
 } = vi.hoisted(() => ({
   createAccountMock: vi.fn(),
   probeUpstreamBillingMock: vi.fn(),
   importCodexSessionMock: vi.fn(),
   createOpenAICodexPATMock: vi.fn(),
+  userApiPostMock: vi.fn(),
   authIsSimpleMode: { value: true },
+}))
+
+vi.mock('@/api/client', () => ({
+  apiClient: {
+    post: userApiPostMock,
+  },
 }))
 
 vi.mock('@/stores/app', () => ({
@@ -97,6 +105,8 @@ const GroupSelectorStub = defineComponent({
       type: Array,
       default: () => [],
     },
+    ownerUserId: Number,
+    enforceOwner: Boolean,
   },
   emits: ['update:modelValue'],
   template: `
@@ -124,9 +134,14 @@ const ModelWhitelistSelectorStub = defineComponent({
   template: '<div data-testid="model-whitelist-selector" />',
 })
 
-function mountModal(groups: any[] = []) {
+function mountModal(
+  groupsOrScope: any[] | 'admin' | 'user' = [],
+  scope: 'admin' | 'user' = 'admin',
+) {
+  const groups = Array.isArray(groupsOrScope) ? groupsOrScope : []
+  const resolvedScope = Array.isArray(groupsOrScope) ? scope : groupsOrScope
   return mount(CreateAccountModal, {
-    props: { show: true, proxies: [], groups },
+    props: { show: true, proxies: [], groups, scope: resolvedScope },
     global: {
       stubs: {
         BaseDialog: BaseDialogStub,
@@ -174,8 +189,8 @@ async function submitApiKeyAccount(
   return wrapper
 }
 
-async function openCodexImportStep(toggleClicks = 0) {
-  const wrapper = mountModal()
+async function openCodexImportStep(toggleClicks = 0, scope: 'admin' | 'user' = 'admin') {
+  const wrapper = mountModal(scope)
   await selectButtonByText(wrapper, 'OpenAI')
   for (let click = 0; click < toggleClicks; click += 1) {
     await wrapper.get('[data-testid="openai-long-context-billing-toggle"]').trigger('click')
@@ -199,6 +214,72 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
       warnings: [],
     })
     createOpenAICodexPATMock.mockReset().mockResolvedValue({})
+    userApiPostMock.mockReset().mockResolvedValue({
+      data: { id: 43, platform: 'openai', type: 'apikey' },
+    })
+  })
+
+  it('passes the normalized system owner scope to GroupSelector for an admin account', () => {
+    authIsSimpleMode.value = false
+    const wrapper = mountModal('admin')
+    const selector = wrapper.getComponent(GroupSelectorStub)
+
+    expect(selector.props('enforceOwner')).toBe(true)
+    expect(selector.props('ownerUserId')).toBe(null)
+  })
+
+  it('creates a user-scoped OpenAI Responses API account through /my/accounts', async () => {
+    const wrapper = mountModal('user')
+    await selectButtonByText(wrapper, 'OpenAI')
+    await selectButtonByText(wrapper, 'API Key')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('User OpenAI account')
+    await wrapper.get('form#create-account-form input[type="password"]').setValue('test-user-api-key')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(userApiPostMock).toHaveBeenCalledTimes(1)
+    expect(userApiPostMock.mock.calls[0]?.[0]).toBe('/my/accounts')
+    expect(userApiPostMock.mock.calls[0]?.[0]).not.toContain('/admin/accounts')
+    expect(userApiPostMock.mock.calls[0]?.[1]).toMatchObject({
+      name: 'User OpenAI account',
+      platform: 'openai',
+      type: 'apikey',
+      extra: {
+        upstream_billing_probe_enabled: true,
+      },
+    })
+    expect(userApiPostMock.mock.calls[0]?.[1]?.upstream_billing_probe_enabled).toBeUndefined()
+    expect(createAccountMock).not.toHaveBeenCalled()
+  })
+
+  it('hides Agent Identity for user scope until the user importer supports it', async () => {
+    const wrapper = mountModal('user')
+    await selectButtonByText(wrapper, 'OpenAI')
+    await wrapper.get('form#create-account-form input[type="text"]').setValue('User Codex account')
+    await wrapper.get('form#create-account-form').trigger('submit.prevent')
+
+    expect(wrapper.getComponent(OAuthAuthorizationFlowStub).props('showAgentIdentityOption')).toBe(false)
+  })
+
+  it('accepts the user Codex import response contract', async () => {
+    userApiPostMock.mockResolvedValueOnce({
+      data: {
+        created: [{ id: 44, name: 'Imported Codex account' }],
+        errors: [],
+        created_count: 1,
+        failed_count: 0,
+      },
+    })
+    const wrapper = await openCodexImportStep(0, 'user')
+
+    await wrapper.get('[data-testid="import-codex-session"]').trigger('click')
+    await flushPromises()
+
+    expect(userApiPostMock).toHaveBeenCalledWith(
+      '/my/accounts/import/codex-session',
+      expect.objectContaining({ content: 'session-json' }),
+    )
+    expect(wrapper.emitted('created')).toHaveLength(1)
   })
 
   it('hides only the redundant account toggle when every selected group enables tier pricing', async () => {
@@ -332,6 +413,13 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     expect(flow.props('showAgentIdentityOption')).toBe(true)
     expect(flow.props('showCodexPatOption')).toBe(true)
     expect(flow.props('initialInputMethod')).toBe('manual')
+  })
+
+  it('defaults new OpenAI OAuth accounts to full Codex fingerprint convergence', async () => {
+    const wrapper = mountModal()
+    await selectButtonByText(wrapper, 'OpenAI')
+
+    expect(wrapper.get('[data-testid="create-codex-fingerprint-mode-select"]').attributes('modelvalue')).toBe('full')
   })
 
   it.each([
