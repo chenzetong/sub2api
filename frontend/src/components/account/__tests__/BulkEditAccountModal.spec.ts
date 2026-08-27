@@ -287,6 +287,7 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
+        codex_fingerprint_mode: 'full',
         openai_passthrough: true
       }
     })
@@ -306,6 +307,7 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
+        codex_fingerprint_mode: 'full',
         openai_responses_flatten_namespaces: true
       }
     })
@@ -334,6 +336,7 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
+        codex_fingerprint_mode: 'full',
         openai_oauth_responses_websockets_v2_mode: 'http_bridge',
         openai_oauth_responses_websockets_v2_enabled: true
       }
@@ -363,8 +366,29 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
+        codex_fingerprint_mode: 'full',
         codex_cli_only: true
       }
+    })
+  })
+
+  it('OpenAI OAuth 批量编辑默认固定写入 full，同时保留上游指纹选项', async () => {
+    const wrapper = mountModal({
+      selectedPlatforms: ['openai'],
+      selectedTypes: ['oauth']
+    })
+
+    const select = wrapper.get('[data-testid="bulk-codex-fingerprint-mode-select"]')
+    expect((select.element as HTMLSelectElement).value).toBe('full')
+    expect(select.findAll('option').map(option => (option.element as HTMLOptionElement).value))
+      .toEqual(['off', 'device', 'session', 'full'])
+
+    await select.setValue('off')
+    await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
+      extra: { codex_fingerprint_mode: 'full' }
     })
   })
 
@@ -385,6 +409,7 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
+        codex_fingerprint_mode: 'full',
         codex_cli_only: true,
         codex_cli_only_allow_app_server: true
       }
@@ -397,13 +422,15 @@ describe('BulkEditAccountModal', () => {
       selectedTypes: ['oauth']
     })
 
-    // 仅开启子开关、不批量设置父开关 codex_cli_only：不应写入孤立字段，也不应调用接口
+    // 仅开启子开关、不批量设置父开关 codex_cli_only：不写入孤立字段，但仍固定落 full。
     await wrapper.get('#bulk-edit-openai-codex-app-server-enabled').setValue(true)
     await wrapper.get('#bulk-edit-openai-codex-app-server-toggle').trigger('click')
     await wrapper.get('#bulk-edit-account-form').trigger('submit.prevent')
     await flushPromises()
 
-    expect(adminAPI.accounts.bulkUpdate).not.toHaveBeenCalled()
+    expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
+      extra: { codex_fingerprint_mode: 'full' }
+    })
   })
 
   it('OpenAI API Key 批量编辑应提交 API Key 专属 WS mode 字段', async () => {
@@ -474,7 +501,10 @@ describe('BulkEditAccountModal', () => {
     await flushPromises()
 
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenLastCalledWith([1, 2], {
-      extra: { openai_long_context_billing_enabled: true }
+      extra: {
+        codex_fingerprint_mode: 'full',
+        openai_long_context_billing_enabled: true
+      }
     })
     enabledWrapper.unmount()
 
@@ -655,7 +685,10 @@ describe('BulkEditAccountModal', () => {
 
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith({
       filters: { platform: 'openai', type: 'oauth', status: 'active' },
-      extra: { openai_long_context_billing_enabled: true }
+      extra: {
+        codex_fingerprint_mode: 'full',
+        openai_long_context_billing_enabled: true
+      }
     })
   })
 
@@ -878,6 +911,7 @@ describe('BulkEditAccountModal', () => {
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledTimes(1)
     expect(adminAPI.accounts.bulkUpdate).toHaveBeenCalledWith([1, 2], {
       extra: {
+        codex_fingerprint_mode: 'full',
         openai_passthrough: true
       }
     })
@@ -917,6 +951,7 @@ describe('BulkEditAccountModal', () => {
         search: 'bulk-target',
         privacy_mode: 'training_set_cf_blocked'
       },
+      extra: { codex_fingerprint_mode: 'full' },
       status: 'active'
     })
   })

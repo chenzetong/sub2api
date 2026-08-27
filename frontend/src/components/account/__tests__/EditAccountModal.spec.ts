@@ -1386,6 +1386,26 @@ describe('EditAccountModal OpenAI 自动使用重置卡', () => {
     }
   })
 
+  it('保留上游指纹选项，但 OpenAI OAuth 编辑写路径固定提交 full', async () => {
+    const account = buildOpenAIOAuthParentAccount()
+    account.extra = { codex_fingerprint_mode: 'device' }
+    updateAccountMock.mockReset().mockResolvedValue(account)
+    checkMixedChannelRiskMock.mockReset().mockResolvedValue({ has_risk: false })
+    const wrapper = mountModal(account)
+
+    const select = wrapper.get('[data-testid="edit-codex-fingerprint-mode-select"]')
+    expect((select.element as HTMLSelectElement).value).toBe('device')
+    expect(select.findAll('option').map(option => (option.element as HTMLOptionElement).value))
+      .toEqual(['off', 'device', 'session', 'full'])
+
+    await select.setValue('off')
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    expect(updateAccountMock.mock.calls[0]?.[1]?.extra?.codex_fingerprint_mode).toBe('full')
+    wrapper.unmount()
+  })
+
   it('独立保存两个阈值，并禁止把运行态回写到管理请求', async () => {
     const account = buildOpenAIOAuthParentAccount()
     account.extra = {

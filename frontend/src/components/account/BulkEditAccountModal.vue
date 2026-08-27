@@ -974,7 +974,7 @@
       </div>
 
       <!-- Codex 指纹收敛模式（仅 OpenAI OAuth） -->
-      <div v-if="allOpenAIOAuth" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIOAuthOnly" class="border-t border-gray-200 pt-4 dark:border-dark-600">
         <div class="mb-3 flex items-center justify-between">
           <label class="input-label mb-0">{{ t('admin.accounts.openai.codexFingerprintMode') }}</label>
           <input
@@ -1706,8 +1706,9 @@ const upstreamBillingAutoProbeMode = ref<'enabled' | 'disabled'>('enabled')
 const codexCLIOnlyEnabled = ref(false)
 const codexCLIOnlyAppServerEnabled = ref(false)
 type CodexFingerprintMode = 'off' | 'device' | 'session' | 'full'
-const enableCodexFingerprintMode = ref(false)
-const codexFingerprintMode = ref<CodexFingerprintMode>('off')
+const DEFAULT_CODEX_FINGERPRINT_MODE: CodexFingerprintMode = 'full'
+const enableCodexFingerprintMode = ref(true)
+const codexFingerprintMode = ref<CodexFingerprintMode>(DEFAULT_CODEX_FINGERPRINT_MODE)
 const codexFingerprintModeOptions = computed(() => [
   { value: 'off' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintOff') },
   { value: 'device' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintDevice') },
@@ -2087,14 +2088,10 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     extra.codex_cli_only_allow_app_server = codexCLIOnlyAppServerEnabled.value
   }
 
-  if (enableCodexFingerprintMode.value) {
+  if (allOpenAIOAuthOnly.value && enableCodexFingerprintMode.value) {
     const extra = ensureExtra()
-    // off = 默认值，清键即可；device/session/full 是显式 opt-in，必须落键（#5610）。
-    if (codexFingerprintMode.value !== 'off') {
-      extra.codex_fingerprint_mode = codexFingerprintMode.value
-    } else {
-      delete extra.codex_fingerprint_mode
-    }
+    // 写路径固定完全收敛；选项列表保留上游形态，避免界面结构分叉。
+    extra.codex_fingerprint_mode = DEFAULT_CODEX_FINGERPRINT_MODE
   }
 
   if (enableOpenAICompactMode.value) {
@@ -2210,7 +2207,7 @@ const handleSubmit = async () => {
     enableUpstreamBillingAutoProbe.value ||
     enableCodexCLIOnly.value ||
     enableCodexCLIOnlyAppServer.value ||
-    enableCodexFingerprintMode.value ||
+    (enableCodexFingerprintMode.value && allOpenAIOAuthOnly.value) ||
     enableOpenAICompactMode.value ||
     enableOpenAICompactModelMapping.value ||
     enableRpmLimit.value ||
@@ -2361,8 +2358,8 @@ watch(
       enableUpstreamBillingAutoProbe.value = false
       enableCodexCLIOnly.value = false
       enableCodexCLIOnlyAppServer.value = false
-      enableCodexFingerprintMode.value = false
-      codexFingerprintMode.value = 'off'
+      enableCodexFingerprintMode.value = true
+      codexFingerprintMode.value = DEFAULT_CODEX_FINGERPRINT_MODE
       enableOpenAICompactMode.value = false
       enableOpenAICompactModelMapping.value = false
       enableRpmLimit.value = false

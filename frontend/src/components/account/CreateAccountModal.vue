@@ -4243,7 +4243,8 @@ const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OF
 const codexCLIOnlyEnabled = ref(false)
 const codexCLIOnlyAppServerEnabled = ref(false)
 type CodexFingerprintMode = 'off' | 'device' | 'session' | 'full'
-const codexFingerprintMode = ref<CodexFingerprintMode>('off')
+const DEFAULT_CODEX_FINGERPRINT_MODE: CodexFingerprintMode = 'full'
+const codexFingerprintMode = ref<CodexFingerprintMode>(DEFAULT_CODEX_FINGERPRINT_MODE)
 const codexFingerprintModeOptions = computed(() => [
   { value: 'off' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintOff') },
   { value: 'device' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintDevice') },
@@ -5163,7 +5164,7 @@ const resetForm = () => {
   openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   codexCLIOnlyEnabled.value = false
   codexCLIOnlyAppServerEnabled.value = false
-  codexFingerprintMode.value = 'off'
+  codexFingerprintMode.value = DEFAULT_CODEX_FINGERPRINT_MODE
   anthropicPassthroughEnabled.value = false
   anthropicAPIKeyAuthScheme.value = 'x_api_key'
   webSearchEmulationMode.value = 'default'
@@ -5263,13 +5264,8 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
   } else {
     delete extra.codex_cli_only_allow_app_server
   }
-  // Convergence stays explicit opt-in: omit the default "off" value, while
-  // persisting every enabled mode selected by the account owner.
-  if (codexFingerprintMode.value !== 'off') {
-    extra.codex_fingerprint_mode = codexFingerprintMode.value
-  } else {
-    delete extra.codex_fingerprint_mode
-  }
+  // OpenAI OAuth-like account writes always converge to one stable fingerprint.
+  extra.codex_fingerprint_mode = DEFAULT_CODEX_FINGERPRINT_MODE
   if (openAICompactMode.value !== 'auto') {
     extra.openai_compact_mode = openAICompactMode.value
   } else {

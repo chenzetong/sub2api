@@ -493,11 +493,14 @@ describe('CreateAccountModal OpenAI long-context billing', () => {
     expect(flow.props('initialInputMethod')).toBe('manual')
   })
 
-  it('keeps upstream opt-in default for new OpenAI OAuth fingerprint convergence', async () => {
+  it('defaults new OpenAI OAuth fingerprint convergence to full while retaining upstream options', async () => {
     const wrapper = mountModal()
     await selectButtonByText(wrapper, 'OpenAI')
 
-    expect(wrapper.get('[data-testid="create-codex-fingerprint-mode-select"]').attributes('modelvalue')).toBe('off')
+    const select = wrapper.getComponent('[data-testid="create-codex-fingerprint-mode-select"]')
+    expect(select.attributes('modelvalue')).toBe('full')
+    expect((select.props('options') as Array<{ value: string }>).map(option => option.value))
+      .toEqual(['off', 'device', 'session', 'full'])
   })
 
   it.each([
