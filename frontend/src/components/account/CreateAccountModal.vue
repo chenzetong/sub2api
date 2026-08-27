@@ -1402,7 +1402,13 @@
 
             <!-- Whitelist Mode -->
             <div v-if="modelRestrictionMode === 'whitelist'">
-              <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" :scope="props.scope" :sync-credentials="syncPreviewCredentials" />
+              <ModelWhitelistSelector
+                v-model="allowedModels"
+                :platform="form.platform"
+                :scope="props.scope"
+                :sync-credentials="syncPreviewCredentials"
+                @upstream-synced="upstreamModelsPreviewed = true"
+              />
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
                 <span v-if="allowedModels.length === 0">{{
@@ -1884,7 +1890,13 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" platform="anthropic" :scope="props.scope" :sync-credentials="syncPreviewCredentials" />
+            <ModelWhitelistSelector
+              v-model="allowedModels"
+              platform="anthropic"
+              :scope="props.scope"
+              :sync-credentials="syncPreviewCredentials"
+              @upstream-synced="upstreamModelsPreviewed = true"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{ t('admin.accounts.supportsAllModels') }}</span>
@@ -2220,7 +2232,13 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" :scope="props.scope" :sync-credentials="syncPreviewCredentials" />
+            <ModelWhitelistSelector
+              v-model="allowedModels"
+              :platform="form.platform"
+              :scope="props.scope"
+              :sync-credentials="syncPreviewCredentials"
+              @upstream-synced="upstreamModelsPreviewed = true"
+            />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{
@@ -3905,6 +3923,13 @@ const createScopedAccount = async (payload: CreateAccountRequest) => {
   return adminAPI.accounts.create(payload)
 }
 
+const syncScopedUpstreamModels = async (accountId: number): Promise<any> => {
+  if (isUserScope.value) {
+    return myResourcesApi.accounts.syncUpstreamModels(accountId)
+  }
+  return adminAPI.accounts.syncUpstreamModels(accountId)
+}
+
 const importScopedCodexSession = async (payload: CodexSessionImportRequest): Promise<any> => {
   if (isUserScope.value) {
     return myResourcesApi.accounts.importCodexSessions(toUserAccountPayload(payload))
@@ -4111,11 +4136,17 @@ const syncPreviewCredentials = computed(() => {
   const baseUrl = isCNPlatform.value && apiProtocol.value === 'adaptive'
     ? adaptiveBaseUrls.value.chat_completions.trim() || apiKeyBaseUrl.value.trim()
     : apiKeyBaseUrl.value.trim()
+  const modelMapping = buildModelMappingObject(
+    modelRestrictionMode.value,
+    allowedModels.value,
+    modelMappings.value
+  )
   return {
     platform: form.platform,
     type: form.type,
     base_url: baseUrl || undefined,
-    api_key: apiKeyValue.value
+    api_key: apiKeyValue.value,
+    ...(modelMapping ? { model_mapping: modelMapping } : {})
   }
 })
 
@@ -4132,6 +4163,7 @@ const modelMappings = ref<ModelMapping[]>([])
 const openAICompactModelMappings = ref<ModelMapping[]>([])
 const modelRestrictionMode = ref<'whitelist' | 'mapping'>('whitelist')
 const allowedModels = ref<string[]>([])
+const upstreamModelsPreviewed = ref(false)
 const DEFAULT_POOL_MODE_RETRY_COUNT = 3
 const MAX_POOL_MODE_RETRY_COUNT = 10
 const DEFAULT_POOL_MODE_RETRY_STATUS_CODES = [401, 403, 429]
@@ -4211,9 +4243,11 @@ const openaiAPIKeyResponsesWebSocketV2Mode = ref<OpenAIWSMode>(OPENAI_WS_MODE_OF
 const codexCLIOnlyEnabled = ref(false)
 const codexCLIOnlyAppServerEnabled = ref(false)
 type CodexFingerprintMode = 'off' | 'device' | 'session' | 'full'
-const DEFAULT_CODEX_FINGERPRINT_MODE: CodexFingerprintMode = 'full'
-const codexFingerprintMode = ref<CodexFingerprintMode>(DEFAULT_CODEX_FINGERPRINT_MODE)
+const codexFingerprintMode = ref<CodexFingerprintMode>('off')
 const codexFingerprintModeOptions = computed(() => [
+  { value: 'off' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintOff') },
+  { value: 'device' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintDevice') },
+  { value: 'session' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintSession') },
   { value: 'full' as CodexFingerprintMode, label: t('admin.accounts.openai.codexFingerprintFull') },
 ])
 type AnthropicAPIKeyAuthScheme = 'x_api_key' | 'authorization_bearer'
@@ -4621,6 +4655,7 @@ watch(
     }
     // Clear model-related settings
     allowedModels.value = []
+    upstreamModelsPreviewed.value = false
     modelMappings.value = []
     // Antigravity: 默认使用映射模式并填充默认映射
     if (newPlatform === 'antigravity') {
@@ -5015,6 +5050,23 @@ const submitCreateAccount = async (payload: CreateAccountRequest) => {
   submitting.value = true
   try {
     const account = await createScopedAccount(withAntigravityConfirmFlag(payload))
+    const modelMapping = payload.credentials.model_mapping
+    const hasConcreteMappedTarget = payload.type === 'apikey' &&
+      typeof modelMapping === 'object' &&
+      modelMapping !== null &&
+      Object.values(modelMapping).some((target) =>
+        typeof target === 'string' && target.trim() !== '' && !target.includes('*')
+      )
+    if (upstreamModelsPreviewed.value || hasConcreteMappedTarget) {
+      try {
+        const result = await syncScopedUpstreamModels(account.id)
+        if (result.warnings?.some((warning: { code?: string }) => warning.code === 'upstream_model_metadata_incomplete')) {
+          appStore.showWarning(t('admin.accounts.syncUpstreamModelsMetadataIncomplete'))
+        }
+      } catch {
+        appStore.showWarning(t('admin.accounts.syncUpstreamModelsFailed'))
+      }
+    }
     if (
       !isUserScope.value &&
       payload.type === 'apikey' &&
@@ -5111,7 +5163,7 @@ const resetForm = () => {
   openaiAPIKeyResponsesWebSocketV2Mode.value = OPENAI_WS_MODE_OFF
   codexCLIOnlyEnabled.value = false
   codexCLIOnlyAppServerEnabled.value = false
-  codexFingerprintMode.value = DEFAULT_CODEX_FINGERPRINT_MODE
+  codexFingerprintMode.value = 'off'
   anthropicPassthroughEnabled.value = false
   anthropicAPIKeyAuthScheme.value = 'x_api_key'
   webSearchEmulationMode.value = 'default'
@@ -5156,6 +5208,7 @@ const resetForm = () => {
   grokOAuth.resetState()
   oauthFlowRef.value?.reset()
   antigravityMixedChannelConfirmed.value = false
+  upstreamModelsPreviewed.value = false
   clearMixedChannelDialog()
 }
 
@@ -5210,7 +5263,13 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
   } else {
     delete extra.codex_cli_only_allow_app_server
   }
-  extra.codex_fingerprint_mode = codexFingerprintMode.value
+  // Convergence stays explicit opt-in: omit the default "off" value, while
+  // persisting every enabled mode selected by the account owner.
+  if (codexFingerprintMode.value !== 'off') {
+    extra.codex_fingerprint_mode = codexFingerprintMode.value
+  } else {
+    delete extra.codex_fingerprint_mode
+  }
   if (openAICompactMode.value !== 'auto') {
     extra.openai_compact_mode = openAICompactMode.value
   } else {

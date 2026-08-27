@@ -66,12 +66,12 @@ release:
   draft: false
   # Xray revisions use a semver suffix but must remain visible to GitHub's latest-release API.
   prerelease: false
-  name_template: "Sub2API {{.Version}} (Simple)"
+  name_template: "Sub2API {{.Version}} (amd64)"
   # 跳过上传二进制包
   skip_upload: true
   header: |
     > AI API Gateway Platform - 将 AI 订阅配额分发和管理
-    > ⚡ Simple Release: 仅包含 x86_64 GHCR 镜像
+    > ⚡ 仅包含 linux/amd64 GHCR 镜像
 
     {{ .Env.TAG_MESSAGE }}
 

@@ -233,9 +233,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyChannelMonitorHideThroughput,
 		SettingKeyChannelMonitorShowQuota,
 		SettingKeyAvailableChannelsEnabled,
-		SettingKeyEnableUserResources,
 		SettingKeyModelPlazaEnabled,
 		SettingKeyModelPlazaRequireAuth,
+		SettingKeyPluginManagementEnabled,
 		SettingKeyAffiliateEnabled,
 		SettingKeyRiskControlEnabled,
 		SettingKeyAllowUserViewErrorRequests,
@@ -360,10 +360,10 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ChannelMonitorShowQuota:              settings[SettingKeyChannelMonitorShowQuota] == "true",
 
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
-		EnableUserResources:      settings[SettingKeyEnableUserResources] == "true",
 
-		ModelPlazaEnabled:     settings[SettingKeyModelPlazaEnabled] == "true",
-		ModelPlazaRequireAuth: settings[SettingKeyModelPlazaRequireAuth] == "true",
+		ModelPlazaEnabled:       settings[SettingKeyModelPlazaEnabled] == "true",
+		ModelPlazaRequireAuth:   settings[SettingKeyModelPlazaRequireAuth] == "true",
+		PluginManagementEnabled: settings[SettingKeyPluginManagementEnabled] == "true",
 
 		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
 
@@ -497,8 +497,11 @@ func (s *SettingService) GetAvailableChannelsRuntime(ctx context.Context) Availa
 }
 
 // IsUserResourcesEnabled checks whether the user-owned resource workspace is enabled.
-// Fail-closed because this feature allows regular users to create schedulable resources.
+// Fail closed because this feature lets regular users create schedulable resources.
 func (s *SettingService) IsUserResourcesEnabled(ctx context.Context) bool {
+	if s == nil || s.settingRepo == nil {
+		return false
+	}
 	vals, err := s.settingRepo.GetMultiple(ctx, []string{SettingKeyEnableUserResources})
 	if err != nil {
 		return false
@@ -628,14 +631,15 @@ type PublicSettingsInjectionPayload struct {
 	ChannelMonitorHideThroughput bool `json:"channel_monitor_hide_throughput"`
 	// ChannelMonitorShowQuota gates the user-facing quota/balance display on
 	// monitors; fail-closed (absent/false = hidden). Admin UI always shows it.
-	ChannelMonitorShowQuota      bool `json:"channel_monitor_show_quota"`
-	AvailableChannelsEnabled     bool `json:"available_channels_enabled"`
-	EnableUserResources          bool `json:"enable_user_resources"`
-	ModelPlazaEnabled            bool `json:"model_plaza_enabled"`
-	ModelPlazaRequireAuth        bool `json:"model_plaza_require_auth"`
-	AffiliateEnabled             bool `json:"affiliate_enabled"`
-	RiskControlEnabled           bool `json:"risk_control_enabled"`
-	AllowUserViewErrorRequests   bool `json:"allow_user_view_error_requests"`
+	ChannelMonitorShowQuota    bool `json:"channel_monitor_show_quota"`
+	AvailableChannelsEnabled   bool `json:"available_channels_enabled"`
+	EnableUserResources        bool `json:"enable_user_resources"`
+	ModelPlazaEnabled          bool `json:"model_plaza_enabled"`
+	ModelPlazaRequireAuth      bool `json:"model_plaza_require_auth"`
+	PluginManagementEnabled    bool `json:"plugin_management_enabled"`
+	AffiliateEnabled           bool `json:"affiliate_enabled"`
+	RiskControlEnabled         bool `json:"risk_control_enabled"`
+	AllowUserViewErrorRequests bool `json:"allow_user_view_error_requests"`
 }
 
 // GetPublicSettingsForInjection returns public settings in a format suitable for HTML injection.
@@ -714,6 +718,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		EnableUserResources:                  settings.EnableUserResources,
 		ModelPlazaEnabled:                    settings.ModelPlazaEnabled,
 		ModelPlazaRequireAuth:                settings.ModelPlazaRequireAuth,
+		PluginManagementEnabled:              settings.PluginManagementEnabled,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,

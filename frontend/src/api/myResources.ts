@@ -69,6 +69,8 @@ export interface UserOAuthCredentialsResult {
 
 export interface SyncUpstreamModelsResult {
   models: string[]
+  metadata?: Record<string, Record<string, unknown>>
+  warnings?: Array<{ code: string; message: string }>
 }
 
 export interface SyncUpstreamPreviewParams {

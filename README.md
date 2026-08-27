@@ -4,42 +4,19 @@
 
 # Sub2API
 
-Sub2API is a maintained fork of [Sub2API](https://github.com/Wei-Shaw/sub2api). It keeps upstream gateway capabilities while adding private user resource pools, subscription distribution, and an embedded Xray proxy runtime.
-
-[![Go](https://img.shields.io/badge/Go-1.26.6-00ADD8.svg)](https://golang.org/)
+[![Go](https://img.shields.io/badge/Go-1.27.0-00ADD8.svg)](https://golang.org/)
 [![Vue](https://img.shields.io/badge/Vue-3.4+-4FC08D.svg)](https://vuejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7+-DC382D.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-**User-owned resources and Xray proxy support for Sub2API**
+<a href="https://trendshift.io/repositories/21823" target="_blank"><img src="https://trendshift.io/api/badge/repositories/21823" alt="Wei-Shaw%2Fsub2api | Trendshift" width="250" height="55"/></a>
+
+**AI API Gateway Platform for Subscription Quota Distribution**
 
 English | [中文](README_CN.md) | [日本語](README_JA.md)
 
 </div>
-
-## Project Scope
-
-This repository is independently maintained and is not the upstream project's official distribution. Upstream changes are merged deliberately and releases are checked only from this repository.
-
-## Differences from Upstream
-
-| Area | Sub2API additions |
-|------|------------------------|
-| User resource workspace | Users can privately manage their own groups, accounts, proxies, assigned subscriptions, and redeem codes. |
-| Group and account parity | User-facing group and account forms align with the administrator workflow, including routing, quota, multiplier, RPM, import/export, testing, and batch operations. |
-| Proxy runtime | Standard HTTP/SOCKS proxies and Xray-backed VMess, VLESS, Trojan, Shadowsocks, Hysteria, TUIC, AnyTLS, Naive, and WireGuard nodes are supported. Base64, Clash, and sing-box subscription sources can be synchronized. |
-| Subscription distribution | Users can assign subscriptions or distribute subscription redeem codes, including repeatable codes and redemption details. |
-| Subscription health | Subscribers can see account-pool health and unsubscribe from unavailable subscriptions. |
-| Usage diagnostics | Users can inspect their own usage, account usage, and redacted upstream errors with administrator-level detail. |
-| Ownership security | Every private resource is owner-scoped. Public proxies expose only safe metadata, and ordinary users cannot access another user's resource pool. |
-| Strict session affinity | Explicit `session_id`, `X-Session-Id`, and compatible conversation headers are atomically pinned to one upstream account. An unavailable bound account fails closed instead of crossing accounts. |
-
-The user resource workspace is controlled by `enable_user_resources` and is disabled by default on upgraded installations.
-
-## Development Version
-
-The current codebase is based on upstream `v0.1.179` and includes the enhancements listed above.
 
 ## ⚠️ Important Notice
 
@@ -79,6 +56,11 @@ Please read the following carefully before using this project:
 <tr>
 <td width="180"><a href="https://aigocode.com/invite/SUB2API"><img src="assets/partners/logos/aigocode.png" alt="AIGoCode" width="150"></a></td>
 <td>Thanks to AIGoCode for sponsoring this project! AIGoCode is an all-in-one platform that integrates Claude Code, Codex, and the latest Gemini models, providing you with stable, efficient, and highly cost-effective AI coding services. The platform offers flexible subscription plans, zero risk of account suspension, direct access with no VPN required, and lightning-fast responses. AIGoCode has prepared a special benefit for sub2api users: if you register via <a href="https://aigocode.com/invite/SUB2API">this link</a>, you'll receive an extra 10% bonus credit on your first top-up!</td>
+</tr>
+
+<tr>
+<td width="180"><a href="https://codex-everywhere.com"><img src="assets/partners/logos/codex-everywhere.jpg" alt="CodexEverywhere" width="150"></a></td>
+<td>Real GPT-5.6 series at 3% of OpenAI pricing — <a href="https://codex-everywhere.com">CodexEverywhere</a> is democratizing access to frontier models for developers worldwide. We believe in transparency and honesty, with model quality verified by active community oversight for months. USD and crypto friendly. Start with a free $20 trial at <a href="https://codex-everywhere.com">codex-everywhere.com</a>.</td>
 </tr>
 
 <tr>
@@ -185,6 +167,11 @@ Please read the following carefully before using this project:
 <td><a href="https://www.duckip.cn/?keyword=cu7oog6y">DuckIP</a> - 90M+ global residential network resources across 195+ countries and regions, with rotation and sticky sessions for public data collection, RAG updates, model evaluation, and multi-region data workloads. 🟢Residential Proxy - 20% Off; 🟢Static Residential Proxy - Starting at ¥50.00/IP; 🟢Unlimited Residential Proxy - Starting at ¥19.8/Hour. ✅Get 500M Free Trial.</td>
 </tr>
 
+<tr>
+<td width="180"><a href="https://go.apimart.ai/gh-sub2api"><img src="assets/partners/logos/apimart.jpg" alt="APIMart" width="150"></a></td>
+<td>Thanks to APIMart for sponsoring this project! <a href="https://go.apimart.ai/gh-sub2api">APIMart</a> is a low-cost API platform for AI image and video generation — GPT-Image-2 from $0.006 per image, with 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, and retrieve results via polling or callback. Batch tens of thousands of images without timeouts, and switch models without changing code. Pay as you go with no monthly fee — <a href="https://go.apimart.ai/gh-sub2api">sign up here</a> to get started.</td>
+</tr>
+
 </table>
 
 ## Overview
@@ -217,7 +204,7 @@ Community projects that extend or integrate with Sub2API:
 
 | Component | Technology |
 |-----------|------------|
-| Backend | Go 1.26.6, Gin, Ent |
+| Backend | Go 1.27.0, Gin, Ent |
 | Frontend | Vue 3.4+, Vite 5+, TailwindCSS |
 | Database | PostgreSQL 15+ |
 | Cache/Queue | Redis 7+ |
@@ -252,7 +239,7 @@ One-click installation script that downloads pre-built binaries from GitHub Rele
 #### Installation Steps
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash
 ```
 
 The script will:
@@ -302,7 +289,7 @@ sudo journalctl -u sub2api -f
 sudo systemctl restart sub2api
 
 # Uninstall
-curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
+curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/install.sh | sudo bash -s -- uninstall -y
 ```
 
 ---
@@ -325,7 +312,7 @@ Use the automated deployment script for easy setup:
 mkdir -p sub2api-deploy && cd sub2api-deploy
 
 # Download and run deployment preparation script
-curl -sSL https://raw.githubusercontent.com/chenzetong/sub2api/main/deploy/docker-deploy.sh | bash
+curl -sSL https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh | bash
 
 # Start services
 docker compose up -d
@@ -347,7 +334,7 @@ If you prefer manual setup:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/chenzetong/sub2api.git
+git clone https://github.com/Wei-Shaw/sub2api.git
 cd sub2api/deploy
 
 # 2. Copy environment configuration
@@ -477,7 +464,7 @@ rm -rf data/ postgres_data/ redis_data/
 Apple-silicon Macs running macOS 26 can run the full Sub2API, PostgreSQL, and Redis stack with Apple `container` 1.1.0 or newer:
 
 ```bash
-git clone https://github.com/chenzetong/sub2api.git
+git clone https://github.com/Wei-Shaw/sub2api.git
 cd sub2api/deploy
 ./apple-container.sh init
 ./apple-container.sh up
@@ -503,7 +490,7 @@ Build and run from source code for development or customization.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/chenzetong/sub2api.git
+git clone https://github.com/Wei-Shaw/sub2api.git
 cd sub2api
 
 # 2. Install pnpm (if not already installed)
@@ -663,6 +650,32 @@ Or set `GATEWAY_OPENAI_WS_MODE_ROUTER_V2_ENABLED=true` in the environment.
 Use `http_bridge` for client-WebSocket/upstream-HTTP operation when rolling out
 or mitigating upstream WebSocket issues.
 
+#### Force OpenAI upstream HTTP/SSE
+
+When an egress proxy or network repeatedly reconnects OpenAI Responses
+WebSockets, set the global fallback in the persisted deployment configuration:
+
+```yaml
+gateway:
+  openai_ws:
+    force_http: true
+```
+
+For Compose and Apple container deployments, the equivalent `.env` setting is:
+
+```bash
+GATEWAY_OPENAI_WS_FORCE_HTTP=true
+```
+
+This selects HTTP/SSE for OpenAI upstream Responses traffic that would
+otherwise use WebSocket. It does not change the client-facing protocol or force
+HTTP/1.1; configure `gateway.openai_http2.enabled` (or
+`GATEWAY_OPENAI_HTTP2_ENABLED=false`) separately when a proxy is incompatible
+with HTTP/2. Unlike the account-level `http_bridge` mode, this global fallback
+takes effect without enabling `mode_router_v2_enabled`. Keep the setting in the
+deployment's persisted `.env` or `config.yaml`, rather than inside a running
+container, so it is read again after an image update or container recreation.
+
 #### ⚠️ Important: Creating the Admin Account
 
 The initial admin account is **only created via the setup wizard** (served at `http://<host>:8080` on first run). The `default.admin_email` / `default.admin_password` fields in `config.yaml` are **not used** to create it — they exist in the template for historical reasons.
@@ -741,7 +754,7 @@ Sub2API supports both Grok subscription accounts through xAI OAuth and standard 
 - Codex CLI style Responses WebSocket ingress is accepted on the Responses targets and bridged to xAI HTTP/SSE Responses upstream
 - Text models: `grok-4.5`, `grok-4.3`, `grok-build-0.1`, `grok-composer-2.5-fast`, `grok-4.20-0309-reasoning`, `grok-4.20-0309-non-reasoning`, and `grok-4.20-multi-agent-0309`
 - Media targets for Grok groups: `/v1/images/generations`, `/images/generations`, `/v1/images/edits`, `/images/edits`, `/v1/videos/generations`, `/videos/generations`, `/v1/videos/edits`, `/videos/edits`, `/v1/videos/extensions`, `/videos/extensions`, `/v1/videos/{request_id}`, and `/videos/{request_id}`. Generation, editing, and extension requests require the group image-generation permission.
-- Media models: `grok-imagine`, `grok-imagine-image-quality`, `grok-imagine-image`, `grok-imagine-edit`, `grok-imagine-video`, and `grok-imagine-video-1.5`
+- Media models: `grok-imagine`, `grok-imagine-image-quality`, `grok-imagine-image`, `grok-imagine-image-2.0`, `grok-imagine-edit`, `grok-imagine-video`, and `grok-imagine-video-1.5`
 - JSON image-edit and video-generation requests accept image references in `image`, `images`, `reference_images`, and `mask` objects. Use `url` for xAI-compatible payloads; the legacy `image_url` field remains accepted and is normalized to `url` before forwarding.
 - Out of scope for this provider: TTS, transcription, browser automation, cookies, and Grok web scraping
 
@@ -880,10 +893,6 @@ sub2api/
 </a>
 
 ---
-
-## Community Acknowledgement
-
-- [LINUX DO](https://linux.do/) - A new kind of ideal community.
 
 ## License
 
