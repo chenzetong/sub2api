@@ -200,10 +200,7 @@ func NewHTTPUpstream(cfg *config.Config) service.HTTPUpstream {
 //   - inFlight > 0 的客户端不会被淘汰，确保活跃请求不被中断
 func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID int64, accountConcurrency int) (*http.Response, error) {
 	applyGrokCLIProxyHeaders(req)
-	policy := service.HTTPUpstreamNetworkPolicy{}
-	if req != nil {
-		policy = service.HTTPUpstreamNetworkPolicyFromContext(req.Context())
-	}
+	policy := s.requestNetworkPolicy(req)
 	policy = s.effectiveNetworkPolicy(policy)
 	if err := s.validateRequestHost(req, policy); err != nil {
 		return nil, err
@@ -220,7 +217,7 @@ func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID i
 	}
 
 	// 执行请求
-	client := httpClientForUpstreamRequest(entry.client, req)
+	client := s.httpClientForUpstreamRequest(entry.client, req)
 	client = httpClientWithGrokAccessDeniedFallback(client)
 	resp, err := servertiming.Do(client, req)
 	if err != nil {
@@ -274,10 +271,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	}
 	slog.Debug("tls_fingerprint_enabled", "account_id", accountID, "target", targetHost, "proxy", proxyInfo, "profile", profile.Name)
 
-	policy := service.HTTPUpstreamNetworkPolicy{}
-	if req != nil {
-		policy = service.HTTPUpstreamNetworkPolicyFromContext(req.Context())
-	}
+	policy := s.requestNetworkPolicy(req)
 	policy = s.effectiveNetworkPolicy(policy)
 	if err := s.validateRequestHost(req, policy); err != nil {
 		return nil, err
@@ -289,7 +283,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 		return nil, err
 	}
 
-	client := httpClientForUpstreamRequest(entry.client, req)
+	client := s.httpClientForUpstreamRequest(entry.client, req)
 	client = httpClientWithGrokAccessDeniedFallback(client)
 	resp, err := servertiming.Do(client, req)
 	if err != nil {
@@ -309,15 +303,27 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 	return resp, nil
 }
 
-func httpClientForUpstreamRequest(client *http.Client, req *http.Request) *http.Client {
-	if client == nil || req == nil || !service.HTTPUpstreamRedirectsDisabled(req.Context()) {
+// httpClientForUpstreamRequest 按请求上下文的标记派生客户端：禁用重定向，或对重定向的每一跳做主机校验。
+// 派生的克隆与缓存客户端共享 Transport；未打标记时原样返回。
+func (s *httpUpstreamService) httpClientForUpstreamRequest(client *http.Client, req *http.Request) *http.Client {
+	if client == nil || req == nil {
 		return client
 	}
-	clone := *client
-	clone.CheckRedirect = func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
+	ctx := req.Context()
+	switch {
+	case service.HTTPUpstreamRedirectsDisabled(ctx):
+		clone := *client
+		clone.CheckRedirect = func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+		return &clone
+	case service.HTTPUpstreamPublicHostsOnly(ctx) && client.CheckRedirect == nil:
+		clone := *client
+		clone.CheckRedirect = s.redirectChecker(service.HTTPUpstreamNetworkPolicy{PublicOnly: true})
+		return &clone
+	default:
+		return client
 	}
-	return &clone
 }
 
 // grokAccessDeniedFallbackTransport preserves the subscription CLI proxy as
@@ -612,6 +618,17 @@ func (s *httpUpstreamService) effectiveNetworkPolicy(policy service.HTTPUpstream
 		return policy
 	}
 	if s.cfg != nil && s.cfg.Security.URLAllowlist.Enabled && !s.cfg.Security.URLAllowlist.AllowPrivateHosts {
+		policy.PublicOnly = true
+	}
+	return policy
+}
+
+func (s *httpUpstreamService) requestNetworkPolicy(req *http.Request) service.HTTPUpstreamNetworkPolicy {
+	if req == nil {
+		return service.HTTPUpstreamNetworkPolicy{}
+	}
+	policy := service.HTTPUpstreamNetworkPolicyFromContext(req.Context())
+	if service.HTTPUpstreamPublicHostsOnly(req.Context()) {
 		policy.PublicOnly = true
 	}
 	return policy

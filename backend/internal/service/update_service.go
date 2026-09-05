@@ -666,7 +666,7 @@ type parsedVersion struct {
 
 func parseVersion(v string) parsedVersion {
 	v = strings.TrimPrefix(v, "v")
-	core, suffix, hasSuffix := strings.Cut(v, "-xray")
+	core, suffix, hasSuffix := strings.Cut(v, "-")
 	parts := strings.Split(core, ".")
 	result := parsedVersion{}
 	for i := 0; i < len(parts) && i < 3; i++ {
@@ -675,7 +675,9 @@ func parseVersion(v string) parsedVersion {
 		}
 	}
 	if hasSuffix {
-		if parsed, err := strconv.Atoi(suffix); err == nil && parsed >= 0 {
+		xrayRevision := strings.TrimPrefix(suffix, "xray")
+		xrayRevision = strings.TrimPrefix(xrayRevision, ".")
+		if parsed, err := strconv.Atoi(xrayRevision); err == nil && parsed >= 0 {
 			result.xray = parsed
 		}
 	}

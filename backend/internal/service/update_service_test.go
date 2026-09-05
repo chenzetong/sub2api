@@ -214,6 +214,8 @@ func TestCompareVersionsSupportsXrayRevisions(t *testing.T) {
 		{name: "newer upstream base wins", current: "0.1.157-xray9", latest: "0.1.158-xray1", expected: -1},
 		{name: "equal custom versions", current: "v0.1.157-xray1", latest: "0.1.157-xray1", expected: 0},
 		{name: "custom revision follows base release", current: "0.1.157", latest: "0.1.157-xray1", expected: -1},
+		{name: "dotted xray revision", current: "0.2.1-xray.1", latest: "0.2.1-xray.2", expected: -1},
+		{name: "dotted and compact revisions match", current: "0.2.1-xray.2", latest: "0.2.1-xray2", expected: 0},
 	}
 
 	for _, tt := range tests {
