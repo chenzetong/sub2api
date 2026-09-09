@@ -1224,14 +1224,14 @@ import {
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { formatDateTime } from '@/utils/format'
 import {
-  buildModelsListConfig,
-  createModelsListState,
-  hydrateModelsListState,
-  invertModelsListSelection,
-  moveModelsListItem,
-  selectAllModelsListItems,
-  type ModelsListState,
-} from '@/views/admin/groupsModelsList'
+  buildModelAllowlistConfig as buildModelsListConfig,
+  createModelAllowlistState as createModelsListState,
+  hydrateModelAllowlistState as hydrateModelsListState,
+  invertModelAllowlistSelection as invertModelsListSelection,
+  moveModelAllowlistItem as moveModelsListItem,
+  selectAllModelAllowlistItems as selectAllModelsListItems,
+  type ModelAllowlistState as ModelsListState,
+} from '@/views/admin/groupModelAllowlist'
 
 type ResourceKind =
   | 'groups'
@@ -1623,7 +1623,7 @@ const editorForm = reactive({
     require_privacy_set: false,
     default_mapped_model: '',
     messages_dispatch_model_config_text: '{}',
-    models_list_config_text: '{}',
+    model_allowlist_text: '{}',
     claude_code_only: false,
     is_exclusive: false,
     mcp_xml_inject: false,
@@ -1920,8 +1920,8 @@ function populateEditorForm(payload: ResourceItem): void {
   editorForm.group.require_privacy_set = Boolean(payload.require_privacy_set)
   editorForm.group.default_mapped_model = stringValue(payload.default_mapped_model)
   editorForm.group.messages_dispatch_model_config_text = JSON.stringify(payload.messages_dispatch_model_config || {}, null, 2)
-  editorForm.group.models_list_config_text = JSON.stringify(payload.models_list_config || {}, null, 2)
-  Object.assign(groupModelsListState, hydrateModelsListState(payload.models_list_config || {}, []))
+  editorForm.group.model_allowlist_text = JSON.stringify(payload.model_allowlist || {}, null, 2)
+  Object.assign(groupModelsListState, hydrateModelsListState(payload.model_allowlist || {}, []))
   editorForm.group.copy_accounts_from_group_ids = idsArray(payload.copy_accounts_from_group_ids)
   editorForm.group.claude_code_only = Boolean(payload.claude_code_only)
   editorForm.group.is_exclusive = Boolean(payload.is_exclusive)
@@ -2019,7 +2019,7 @@ function mergeEditorFormPayload(payload: ResourceItem): ResourceItem {
     out.require_privacy_set = editorForm.group.require_privacy_set
     out.default_mapped_model = editorForm.group.default_mapped_model
     out.messages_dispatch_model_config = parseJSONField(editorForm.group.messages_dispatch_model_config_text, {})
-    out.models_list_config = buildModelsListConfig(groupModelsListState)
+    out.model_allowlist = buildModelsListConfig(groupModelsListState)
     if (!editingId.value && editorForm.group.copy_accounts_from_group_ids.length) {
       out.copy_accounts_from_group_ids = editorForm.group.copy_accounts_from_group_ids.map(Number)
     }

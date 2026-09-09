@@ -548,41 +548,6 @@
                 </button>
               </div>
             </div>
-            <div>
-              <label class="input-label">{{ t('admin.proxies.expiresAt') }}</label>
-              <div class="mb-2 flex flex-wrap gap-2">
-                <button
-                  v-for="d in EXPIRY_PRESETS"
-                  :key="d"
-                  type="button"
-                  class="btn btn-sm"
-                  :class="createForm.expires_at === addDaysToBase('', d) ? 'btn-primary' : 'btn-secondary'"
-                  @click="createExpiresDays = d"
-                >
-                  {{ t('admin.proxies.nDays', { days: d }) }}
-                </button>
-              </div>
-              <input
-                v-model.number="createExpiresDays"
-                type="number"
-                min="0"
-                class="input mb-2"
-                :placeholder="t('admin.proxies.expiryDaysPlaceholder')"
-              />
-              <input v-model="createForm.expires_at" type="date" class="input" />
-            </div>
-            <div>
-              <label class="input-label">{{ t('admin.proxies.fallbackMode') }}</label>
-              <Select v-model="createForm.fallback_mode" :options="[
-                { label: t('admin.proxies.fallbackNone'), value: 'none' },
-                { label: t('admin.proxies.fallbackProxy'), value: 'proxy' },
-                { label: t('admin.proxies.fallbackDirect'), value: 'direct' },
-              ]" />
-            </div>
-            <div v-if="createForm.fallback_mode === 'proxy'">
-              <label class="input-label">{{ t('admin.proxies.backupProxy') }}</label>
-              <Select v-model="createForm.backup_proxy_id" :options="backupProxyOptions()" />
-            </div>
           </template>
 
           <template v-else-if="inputMode === 'xray'">
@@ -732,6 +697,42 @@
             </div>
           </div>
         </template>
+
+        <div>
+          <label class="input-label">{{ t('admin.proxies.expiresAt') }}</label>
+          <div class="mb-2 flex flex-wrap gap-2">
+            <button
+              v-for="d in EXPIRY_PRESETS"
+              :key="d"
+              type="button"
+              class="btn btn-sm"
+              :class="createForm.expires_at === addDaysToBase('', d) ? 'btn-primary' : 'btn-secondary'"
+              @click="createExpiresDays = d"
+            >
+              {{ t('admin.proxies.nDays', { days: d }) }}
+            </button>
+          </div>
+          <input
+            v-model.number="createExpiresDays"
+            type="number"
+            min="0"
+            class="input mb-2"
+            :placeholder="t('admin.proxies.expiryDaysPlaceholder')"
+          />
+          <input v-model="createForm.expires_at" type="date" max="9999-12-31" class="input" />
+        </div>
+        <div>
+          <label class="input-label">{{ t('admin.proxies.fallbackMode') }}</label>
+          <Select v-model="createForm.fallback_mode" :options="[
+            { label: t('admin.proxies.fallbackNone'), value: 'none' },
+            { label: t('admin.proxies.fallbackProxy'), value: 'proxy' },
+            { label: t('admin.proxies.fallbackDirect'), value: 'direct' },
+          ]" />
+        </div>
+        <div v-if="createForm.fallback_mode === 'proxy'">
+          <label class="input-label">{{ t('admin.proxies.backupProxy') }}</label>
+          <Select v-model="createForm.backup_proxy_id" :options="backupProxyOptions()" />
+        </div>
 
         <label class="flex cursor-pointer items-center gap-2">
           <input
@@ -1137,7 +1138,7 @@
             class="input mb-2"
             :placeholder="t('admin.proxies.expiryDaysPlaceholder')"
           />
-          <input v-model="editForm.expires_at" type="date" class="input" />
+          <input v-model="editForm.expires_at" type="date" max="9999-12-31" class="input" />
         </div>
         <div>
           <label class="input-label">{{ t('admin.proxies.fallbackMode') }}</label>
@@ -2647,6 +2648,14 @@ const qualityTargetLabel = (target: string) => {
       return 'Gemini'
     case 'grok':
       return 'Grok'
+    case 'kimi':
+      return 'Kimi'
+    case 'zhipu':
+      return 'Zhipu GLM'
+    case 'deepseek':
+      return 'DeepSeek'
+    case 'minimax':
+      return 'MiniMax'
     default:
       return target
   }
