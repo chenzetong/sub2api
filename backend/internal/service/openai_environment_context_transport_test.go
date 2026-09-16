@@ -33,7 +33,7 @@ func TestEnvironmentContextWSPassthroughRewritesEveryTurn(t *testing.T) {
 	defer server.Close()
 	payload := `{"type":"response.create","model":"gpt-5.1","instructions":"test","input":[{"role":"user","content":"<environment_context><cwd>/Users/mike/Personal</cwd><timezone>Asia/Shanghai</timezone><current_date>2000-01-01</current_date></environment_context>"}]}`
 	conn := dialPassthroughLifecycleClientWithPayload(t, server, payload)
-	defer conn.CloseNow()
+	defer func() { _ = conn.CloseNow() }()
 	first := requirePassthroughUpstreamWrite(t, upstream, 3*time.Second)
 	assert.Contains(t, string(first), "<timezone>America/Los_Angeles</timezone>")
 	assert.NotContains(t, string(first), "2000-01-01")

@@ -52,11 +52,11 @@ func RewriteEnvironmentContextTimezone(body []byte, timezone string, now time.Ti
 		if replacement.start < previous || replacement.end > len(body) || replacement.start > replacement.end {
 			return body, false
 		}
-		rewritten.Write(body[previous:replacement.start])
-		rewritten.Write(replacement.value)
+		_, _ = rewritten.Write(body[previous:replacement.start])
+		_, _ = rewritten.Write(replacement.value)
 		previous = replacement.end
 	}
-	rewritten.Write(body[previous:])
+	_, _ = rewritten.Write(body[previous:])
 	return rewritten.Bytes(), true
 }
 
@@ -164,8 +164,8 @@ func rewriteEnvironmentContextText(text string, location *time.Location, now tim
 		block, timezoneChanged := replaceTagText(block, timezoneOpenTag, timezoneCloseTag, location.String())
 		block, dateChanged := replaceTagText(block, currentDateOpenTag, currentDateCloseTag, date)
 		if timezoneChanged || dateChanged {
-			rewritten.WriteString(text[written:start])
-			rewritten.WriteString(block)
+			_, _ = rewritten.WriteString(text[written:start])
+			_, _ = rewritten.WriteString(block)
 			written = end
 			changed = true
 		}
@@ -173,7 +173,7 @@ func rewriteEnvironmentContextText(text string, location *time.Location, now tim
 	if !changed {
 		return text, false
 	}
-	rewritten.WriteString(text[written:])
+	_, _ = rewritten.WriteString(text[written:])
 	return rewritten.String(), true
 }
 
@@ -196,15 +196,15 @@ func replaceTagText(value, openTag, closeTag, replacement string) (string, bool)
 		if strings.Contains(value[start:end], "<") || value[start:end] == replacement {
 			continue
 		}
-		rewritten.WriteString(value[written:start])
-		rewritten.WriteString(replacement)
+		_, _ = rewritten.WriteString(value[written:start])
+		_, _ = rewritten.WriteString(replacement)
 		written = end
 		changed = true
 	}
 	if !changed {
 		return value, false
 	}
-	rewritten.WriteString(value[written:])
+	_, _ = rewritten.WriteString(value[written:])
 	return rewritten.String(), true
 }
 

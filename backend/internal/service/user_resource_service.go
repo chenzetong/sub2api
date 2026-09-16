@@ -5842,20 +5842,20 @@ func proxyFromResourceMap(item map[string]any) *Proxy {
 		backupProxyID = &id
 	}
 	return &Proxy{
-		ID:             urToInt64(item["id"]),
-		Name:           urAsString(item["name"]),
-		OwnerUserID:    ownerUserID,
-		IsPublic:       toBool(item["is_public"]),
-		Kind:           urAsString(item["kind"]),
-		Protocol:       urAsString(item["protocol"]),
-		Host:           urAsString(item["host"]),
-		Port:           toInt(item["port"]),
-		Username:       urAsString(item["username"]),
-		Password:       urAsString(item["password"]),
-		Status:         urAsString(item["status"]),
-		FallbackMode:   urAsString(item["fallback_mode"]),
-		BackupProxyID:  backupProxyID,
-		Extra:          extra,
+		ID:            urToInt64(item["id"]),
+		Name:          urAsString(item["name"]),
+		OwnerUserID:   ownerUserID,
+		IsPublic:      toBool(item["is_public"]),
+		Kind:          urAsString(item["kind"]),
+		Protocol:      urAsString(item["protocol"]),
+		Host:          urAsString(item["host"]),
+		Port:          toInt(item["port"]),
+		Username:      urAsString(item["username"]),
+		Password:      urAsString(item["password"]),
+		Status:        urAsString(item["status"]),
+		FallbackMode:  urAsString(item["fallback_mode"]),
+		BackupProxyID: backupProxyID,
+		Extra:         extra,
 	}
 }
 
