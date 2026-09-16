@@ -878,6 +878,12 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 				return
 			}
+			if h.openAIGatewayService != nil {
+				if err := attemptParsedReq.ReplaceBody(h.openAIGatewayService.RewriteEnvironmentContextForAccount(c.Request.Context(), account, attemptParsedReq.Body.Bytes())); err != nil {
+					h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
+					return
+				}
+			}
 			attemptBody := attemptParsedReq.Body.Bytes()
 
 			// 转发请求 - 根据账号平台分流

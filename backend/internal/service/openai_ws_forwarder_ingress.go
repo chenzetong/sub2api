@@ -239,7 +239,7 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 
 		values := gjson.GetManyBytes(trimmed, "type", "model", "prompt_cache_key", "previous_response_id")
 		eventType := strings.TrimSpace(values[0].String())
-		normalized := trimmed
+		normalized := s.RewriteEnvironmentContextForAccount(ctx, account, trimmed)
 		switch eventType {
 		case "":
 			eventType = "response.create"

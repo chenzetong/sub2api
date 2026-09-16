@@ -27,6 +27,11 @@ func (s *userResourceProxyLatencyCacheStub) SetProxyLatency(_ context.Context, i
 	return nil
 }
 
+func (s *userResourceProxyLatencyCacheStub) DeleteProxyLatency(_ context.Context, id int64) error {
+	delete(s.items, id)
+	return nil
+}
+
 func TestUserResourceProxyObservabilityAttachesSafeDisplayFields(t *testing.T) {
 	latency := int64(87)
 	score := 94
@@ -92,5 +97,25 @@ func TestUserResourceProxyObservationPreservesQualityOnConnectivityRefresh(t *te
 	saved := cache.items[12]
 	if saved == nil || saved.QualityStatus != "warn" || saved.QualityGrade != "B" {
 		t.Fatalf("connectivity refresh discarded quality data: %#v", saved)
+	}
+}
+
+func TestUserResourceProxyObservationPreservesTimezoneOnConnectivityRefresh(t *testing.T) {
+	cache := &userResourceProxyLatencyCacheStub{items: map[int64]*ProxyLatencyInfo{
+		13: {Timezone: "America/Los_Angeles"},
+	}}
+	svc := NewUserResourceService(nil, nil, nil, nil)
+	svc.SetProxyObservabilityServices(nil, cache)
+	latency := int64(42)
+
+	svc.saveProxyObservation(context.Background(), 13, &ProxyLatencyInfo{
+		Success:   true,
+		LatencyMs: &latency,
+		UpdatedAt: time.Now(),
+	})
+
+	saved := cache.items[13]
+	if saved == nil || saved.Timezone != "America/Los_Angeles" {
+		t.Fatalf("connectivity refresh discarded timezone: %#v", saved)
 	}
 }

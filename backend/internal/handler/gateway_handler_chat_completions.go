@@ -266,6 +266,9 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 		if channelMapping.Mapped {
 			forwardBody = h.gatewayService.ReplaceModelInBody(body, channelMapping.MappedModel)
 		}
+		if h.openAIGatewayService != nil {
+			forwardBody = h.openAIGatewayService.RewriteEnvironmentContextForAccount(c.Request.Context(), account, forwardBody)
+		}
 		var result *service.ForwardResult
 		setActualUpstreamEndpoint(c, "")
 		if account.Platform == service.PlatformGemini {

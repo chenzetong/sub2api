@@ -262,6 +262,9 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 		if channelMapping.Mapped {
 			forwardBody = h.gatewayService.ReplaceModelInBody(body, channelMapping.MappedModel)
 		}
+		if h.openAIGatewayService != nil {
+			forwardBody = h.openAIGatewayService.RewriteEnvironmentContextForAccount(requestCtx, account, forwardBody)
+		}
 		var result *service.ForwardResult
 		setActualUpstreamEndpoint(c, "")
 		if shouldUseAntigravityCompat(account) {

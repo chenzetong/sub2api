@@ -626,6 +626,7 @@ type ProxyExitInfo struct {
 	Region      string
 	Country     string
 	CountryCode string
+	Timezone    string
 }
 
 // ProxyExitInfoProber tests proxy connectivity and retrieves exit information

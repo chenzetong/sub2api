@@ -2243,9 +2243,11 @@ func (s *UserResourceService) updateProxy(ctx context.Context, ownerID, proxyID 
 	if !preserveSourceMetadata {
 		stripProxySourceMetadata(payload)
 	}
+	beforeUpdate := proxyFromResourceMap(mergeResourceState(existing, nil, proxyWritableColumns))
 	if err := s.normalizeAndValidateProxyPayload(ctx, ownerID, proxyID, existing, payload); err != nil {
 		return nil, err
 	}
+	afterUpdate := proxyFromResourceMap(mergeResourceState(existing, payload, proxyWritableColumns))
 	if err := stopProxyRuntimesWithRetry(proxyID); err != nil {
 		return nil, fmt.Errorf("stop previous proxy runtime: %w", err)
 	}
@@ -2301,6 +2303,9 @@ VALUES ($1, NULL, NULL, $2::jsonb, NOW())`, SchedulerOutboxEventAccountBulkChang
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	if proxyExitIdentityChanged(beforeUpdate, afterUpdate) {
+		s.deleteProxyLatency(proxyID)
+	}
 	return s.GetProxy(ctx, ownerID, proxyID)
 }
 
@@ -2331,7 +2336,19 @@ func (s *UserResourceService) DeleteProxy(ctx context.Context, ownerID, proxyID 
 	if affected(res) == 0 {
 		return ErrUserResourceNotFound
 	}
+	s.deleteProxyLatency(proxyID)
 	return nil
+}
+
+func (s *UserResourceService) deleteProxyLatency(proxyID int64) {
+	if s == nil || s.proxyLatencyCache == nil || proxyID <= 0 {
+		return
+	}
+	cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.proxyLatencyCache.DeleteProxyLatency(cacheCtx, proxyID); err != nil {
+		slog.Warn("delete proxy latency cache failed", "proxy_id", proxyID, "error", err)
+	}
 }
 
 func (s *UserResourceService) attachProxyObservability(ctx context.Context, items []map[string]any) {
@@ -2384,20 +2401,24 @@ func (s *UserResourceService) saveProxyObservation(ctx context.Context, proxyID 
 	}
 	merged := *info
 	if observations, err := s.proxyLatencyCache.GetProxyLatencies(ctx, []int64{proxyID}); err == nil {
-		if existing := observations[proxyID]; existing != nil &&
-			merged.QualityCheckedAt == nil &&
-			merged.QualityScore == nil &&
-			merged.QualityGrade == "" &&
-			merged.QualityStatus == "" &&
-			merged.QualitySummary == "" &&
-			merged.QualityCFRay == "" {
-			merged.QualityStatus = existing.QualityStatus
-			merged.QualityScore = existing.QualityScore
-			merged.QualityGrade = existing.QualityGrade
-			merged.QualitySummary = existing.QualitySummary
-			merged.QualityCheckedAt = existing.QualityCheckedAt
-			merged.QualityCFRay = existing.QualityCFRay
-			merged.QualityEngine = existing.QualityEngine
+		if existing := observations[proxyID]; existing != nil {
+			if merged.Timezone == "" {
+				merged.Timezone = existing.Timezone
+			}
+			if merged.QualityCheckedAt == nil &&
+				merged.QualityScore == nil &&
+				merged.QualityGrade == "" &&
+				merged.QualityStatus == "" &&
+				merged.QualitySummary == "" &&
+				merged.QualityCFRay == "" {
+				merged.QualityStatus = existing.QualityStatus
+				merged.QualityScore = existing.QualityScore
+				merged.QualityGrade = existing.QualityGrade
+				merged.QualitySummary = existing.QualitySummary
+				merged.QualityCheckedAt = existing.QualityCheckedAt
+				merged.QualityCFRay = existing.QualityCFRay
+				merged.QualityEngine = existing.QualityEngine
+			}
 		}
 	}
 	_ = s.proxyLatencyCache.SetProxyLatency(ctx, proxyID, &merged)
@@ -2455,6 +2476,7 @@ func (s *UserResourceService) TestProxy(ctx context.Context, ownerID, proxyID in
 			info.CountryCode = exitInfo.CountryCode
 			info.Region = exitInfo.Region
 			info.City = exitInfo.City
+			info.Timezone = exitInfo.Timezone
 			if !hideDetails {
 				result["ip_address"] = exitInfo.IP
 			}
@@ -2725,6 +2747,7 @@ func (s *UserResourceService) saveUserProxyQualitySnapshot(
 		info.CountryCode = exitInfo.CountryCode
 		info.Region = exitInfo.Region
 		info.City = exitInfo.City
+		info.Timezone = exitInfo.Timezone
 	}
 	s.saveProxyObservation(ctx, proxyID, info)
 }
@@ -2981,6 +3004,9 @@ WHERE id = $1 AND owner_user_id IS NOT DISTINCT FROM $2 AND deleted_at IS NULL`,
 		return err
 	}
 	for _, proxyID := range staleIDs {
+		s.deleteProxyLatency(proxyID)
+	}
+	for _, proxyID := range staleIDs {
 		if err := stopProxyRuntimesWithRetry(proxyID); err != nil {
 			slog.Error("proxy source runtime cleanup failed", "owner_user_id", userResourceOwnerValue(ownerID), "source_id", sourceID, "proxy_id", proxyID, "error", err)
 		}
@@ -3130,12 +3156,18 @@ FOR UPDATE`, sourceID, userResourceOwnerValue(ownerID)).Scan(&lockedSourceID); e
 		}
 	}
 	updatedRuntimeIDs := make([]int64, 0, len(prepared))
+	cacheInvalidationIDs := make([]int64, 0, len(prepared))
 	for _, candidate := range prepared {
 		payload := clonePayload(candidate.payload)
 		if current := currentByKey[candidate.key]; current != nil {
 			proxyID := urToInt64(current["id"])
+			beforeUpdate := proxyFromResourceMap(current)
+			afterUpdate := proxyFromResourceMap(mergeResourceState(current, payload, proxyWritableColumns))
 			if err := s.updateForOwnerWith(ctx, tx, "proxies", ownerID, proxyID, proxyWritableColumns, payload); err != nil {
 				return nil, err
+			}
+			if proxyExitIdentityChanged(beforeUpdate, afterUpdate) {
+				cacheInvalidationIDs = append(cacheInvalidationIDs, proxyID)
 			}
 			updatedRuntimeIDs = append(updatedRuntimeIDs, proxyID)
 			result.Updated = append(result.Updated, proxySourceMutationItem(proxyID, ownerID, payload))
@@ -3188,6 +3220,9 @@ WHERE id = $4 AND owner_user_id IS NOT DISTINCT FROM $5 AND deleted_at IS NULL`,
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
+	}
+	for _, proxyID := range uniquePositiveInt64s(append(cacheInvalidationIDs, staleIDs...)) {
+		s.deleteProxyLatency(proxyID)
 	}
 	for _, proxyID := range runtimeIDs {
 		if err := stopProxyRuntimesWithRetry(proxyID); err != nil {
@@ -5802,18 +5837,25 @@ func proxyFromResourceMap(item map[string]any) *Proxy {
 	if id := urToInt64(item["owner_user_id"]); id > 0 {
 		ownerUserID = &id
 	}
+	var backupProxyID *int64
+	if id := urToInt64(item["backup_proxy_id"]); id > 0 {
+		backupProxyID = &id
+	}
 	return &Proxy{
-		ID:          urToInt64(item["id"]),
-		Name:        urAsString(item["name"]),
-		OwnerUserID: ownerUserID,
-		IsPublic:    toBool(item["is_public"]),
-		Kind:        urAsString(item["kind"]),
-		Protocol:    urAsString(item["protocol"]),
-		Host:        urAsString(item["host"]),
-		Port:        toInt(item["port"]),
-		Username:    urAsString(item["username"]),
-		Password:    urAsString(item["password"]),
-		Extra:       extra,
+		ID:             urToInt64(item["id"]),
+		Name:           urAsString(item["name"]),
+		OwnerUserID:    ownerUserID,
+		IsPublic:       toBool(item["is_public"]),
+		Kind:           urAsString(item["kind"]),
+		Protocol:       urAsString(item["protocol"]),
+		Host:           urAsString(item["host"]),
+		Port:           toInt(item["port"]),
+		Username:       urAsString(item["username"]),
+		Password:       urAsString(item["password"]),
+		Status:         urAsString(item["status"]),
+		FallbackMode:   urAsString(item["fallback_mode"]),
+		BackupProxyID:  backupProxyID,
+		Extra:          extra,
 	}
 }
 

@@ -14,6 +14,7 @@ type ProxyLatencyInfo struct {
 	CountryCode      string    `json:"country_code,omitempty"`
 	Region           string    `json:"region,omitempty"`
 	City             string    `json:"city,omitempty"`
+	Timezone         string    `json:"timezone,omitempty"`
 	QualityStatus    string    `json:"quality_status,omitempty"`
 	QualityScore     *int      `json:"quality_score,omitempty"`
 	QualityGrade     string    `json:"quality_grade,omitempty"`
@@ -35,4 +36,5 @@ func hasCurrentProxyQuality(info *ProxyLatencyInfo) bool {
 type ProxyLatencyCache interface {
 	GetProxyLatencies(ctx context.Context, proxyIDs []int64) (map[int64]*ProxyLatencyInfo, error)
 	SetProxyLatency(ctx context.Context, proxyID int64, info *ProxyLatencyInfo) error
+	DeleteProxyLatency(ctx context.Context, proxyID int64) error
 }

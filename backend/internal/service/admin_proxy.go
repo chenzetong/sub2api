@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -140,6 +141,7 @@ func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *Upd
 	if err != nil {
 		return nil, err
 	}
+	original := *proxy
 	kind := proxy.Kind
 	if strings.TrimSpace(input.Kind) != "" {
 		kind = normalizeAdminProxyKind(input.Kind)
@@ -231,7 +233,44 @@ func (s *adminServiceImpl) UpdateProxy(ctx context.Context, id int64, input *Upd
 	if err := s.proxyRepo.Update(ctx, proxy); err != nil {
 		return nil, err
 	}
+	if proxyExitIdentityChanged(&original, proxy) {
+		s.deleteProxyLatency(id)
+	}
 	return proxy, nil
+}
+
+func proxyExitIdentityChanged(before, after *Proxy) bool {
+	if before == nil || after == nil {
+		return before != after
+	}
+	return before.Kind != after.Kind ||
+		before.Protocol != after.Protocol ||
+		before.Host != after.Host ||
+		before.Port != after.Port ||
+		before.Username != after.Username ||
+		before.Password != after.Password ||
+		before.Status != after.Status ||
+		before.FallbackMode != after.FallbackMode ||
+		!sameOptionalInt64(before.BackupProxyID, after.BackupProxyID) ||
+		!reflect.DeepEqual(before.Extra, after.Extra)
+}
+
+func sameOptionalInt64(left, right *int64) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	return *left == *right
+}
+
+func (s *adminServiceImpl) deleteProxyLatency(proxyID int64) {
+	if s == nil || s.proxyLatencyCache == nil || proxyID <= 0 {
+		return
+	}
+	cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := s.proxyLatencyCache.DeleteProxyLatency(cacheCtx, proxyID); err != nil {
+		logger.LegacyPrintf("service.admin", "Warning: delete proxy latency cache failed: proxy_id=%d err=%v", proxyID, err)
+	}
 }
 
 func normalizeAdminProxyKind(kind string) string {
@@ -320,7 +359,11 @@ func (s *adminServiceImpl) DeleteProxy(ctx context.Context, id int64) error {
 	if err := stopProxyRuntimesWithRetry(id); err != nil {
 		return err
 	}
-	return s.proxyRepo.Delete(ctx, id)
+	if err := s.proxyRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+	s.deleteProxyLatency(id)
+	return nil
 }
 
 func (s *adminServiceImpl) BatchDeleteProxies(ctx context.Context, ids []int64) (*ProxyBatchDeleteResult, error) {
@@ -368,6 +411,7 @@ func (s *adminServiceImpl) BatchDeleteProxies(ctx context.Context, ids []int64) 
 			})
 			continue
 		}
+		s.deleteProxyLatency(id)
 		result.DeletedIDs = append(result.DeletedIDs, id)
 	}
 
@@ -422,6 +466,7 @@ func (s *adminServiceImpl) TestProxy(ctx context.Context, id int64) (*ProxyTestR
 		CountryCode: exitInfo.CountryCode,
 		Region:      exitInfo.Region,
 		City:        exitInfo.City,
+		Timezone:    exitInfo.Timezone,
 		UpdatedAt:   time.Now(),
 	})
 	return &ProxyTestResult{
@@ -717,6 +762,7 @@ func (s *adminServiceImpl) saveProxyQualitySnapshot(ctx context.Context, proxyID
 		info.CountryCode = exitInfo.CountryCode
 		info.Region = exitInfo.Region
 		info.City = exitInfo.City
+		info.Timezone = exitInfo.Timezone
 	}
 	s.saveProxyLatency(ctx, proxyID, info)
 }
@@ -755,6 +801,7 @@ func (s *adminServiceImpl) probeProxyLatency(ctx context.Context, proxy *Proxy) 
 		CountryCode: exitInfo.CountryCode,
 		Region:      exitInfo.Region,
 		City:        exitInfo.City,
+		Timezone:    exitInfo.Timezone,
 		UpdatedAt:   time.Now(),
 	})
 }
@@ -810,6 +857,9 @@ func (s *adminServiceImpl) saveProxyLatency(ctx context.Context, proxyID int64, 
 	merged := *info
 	if latencies, err := s.proxyLatencyCache.GetProxyLatencies(ctx, []int64{proxyID}); err == nil {
 		if existing := latencies[proxyID]; existing != nil {
+			if merged.Timezone == "" {
+				merged.Timezone = existing.Timezone
+			}
 			if merged.QualityCheckedAt == nil &&
 				merged.QualityScore == nil &&
 				merged.QualityGrade == "" &&
