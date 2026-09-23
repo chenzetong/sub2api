@@ -235,7 +235,7 @@ func TestSingBoxRuntimeConfigsPassBinaryCheck(t *testing.T) {
 			if err := os.WriteFile(path, config, 0o600); err != nil {
 				t.Fatalf("write config: %v", err)
 			}
-			if output, err := exec.Command(bin, "check", "-c", path).CombinedOutput(); err != nil {
+			if output, err := exec.Command(bin, "check", "-c", path).CombinedOutput(); err != nil { //nolint:gosec // Test operator selects the runtime binary; generated config is passed without a shell.
 				t.Fatalf("sing-box rejected generated config: %v: %s", err, strings.TrimSpace(string(output)))
 			}
 		})
@@ -247,7 +247,7 @@ func TestSingBoxRuntimeManagerPrunesIdleInstance(t *testing.T) {
 	manager.maxInstances = 1
 	manager.idleTTL = time.Minute
 	manager.commandFactory = func(_, configPath string) *exec.Cmd {
-		cmd := exec.Command(os.Args[0], "-test.run=^TestSingBoxRuntimeHelperProcess$")
+		cmd := exec.Command(os.Args[0], "-test.run=^TestSingBoxRuntimeHelperProcess$") //nolint:gosec // Re-executes this test binary with a fixed helper-test selector, without a shell.
 		cmd.Env = append(os.Environ(),
 			"SUB2API_SING_BOX_HELPER=1",
 			"SUB2API_SING_BOX_HELPER_CONFIG="+configPath,
