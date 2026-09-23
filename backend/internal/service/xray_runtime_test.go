@@ -468,7 +468,7 @@ func TestXrayXHTTPConfigPassesBinaryCheck(t *testing.T) {
 	if err := os.WriteFile(path, config, 0o600); err != nil {
 		t.Fatalf("write xhttp config: %v", err)
 	}
-	if output, err := exec.Command(bin, "run", "-test", "-config", path).CombinedOutput(); err != nil {
+	if output, err := exec.Command(bin, "run", "-test", "-config", path).CombinedOutput(); err != nil { //nolint:gosec // Test operator selects the runtime binary; generated config is passed without a shell.
 		t.Fatalf("xray rejected generated xhttp config: %v: %s", err, strings.TrimSpace(string(output)))
 	}
 }
@@ -531,7 +531,7 @@ func TestXrayRuntimeConfigsPassBinaryCheck(t *testing.T) {
 			if err := os.WriteFile(path, config, 0o600); err != nil {
 				t.Fatalf("write xray config: %v", err)
 			}
-			if output, err := exec.Command(bin, "run", "-test", "-config", path).CombinedOutput(); err != nil {
+			if output, err := exec.Command(bin, "run", "-test", "-config", path).CombinedOutput(); err != nil { //nolint:gosec // Test operator selects the runtime binary; generated config is passed without a shell.
 				t.Fatalf("xray rejected generated config: %v: %s", err, strings.TrimSpace(string(output)))
 			}
 		})
@@ -544,7 +544,7 @@ func TestXrayRuntimeManagerConcurrentStartAndClose(t *testing.T) {
 	var starts atomic.Int32
 	manager.commandFactory = func(_, configPath string) *exec.Cmd {
 		starts.Add(1)
-		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$")
+		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$") //nolint:gosec // Re-executes this test binary with a fixed helper-test selector, without a shell.
 		cmd.Env = append(os.Environ(),
 			"SUB2API_XRAY_HELPER=1",
 			"SUB2API_XRAY_HELPER_CONFIG="+configPath,
@@ -623,7 +623,7 @@ func TestXrayRuntimeManagerEnforcesInstanceLimit(t *testing.T) {
 	manager := NewXrayRuntimeManager("xray-test-helper", t.TempDir())
 	manager.maxInstances = 1
 	manager.commandFactory = func(_, configPath string) *exec.Cmd {
-		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$")
+		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$") //nolint:gosec // Re-executes this test binary with a fixed helper-test selector, without a shell.
 		cmd.Env = append(os.Environ(),
 			"SUB2API_XRAY_HELPER=1",
 			"SUB2API_XRAY_HELPER_CONFIG="+configPath,
@@ -667,7 +667,7 @@ func TestXrayRuntimeManagerPrunesIdleInstance(t *testing.T) {
 	manager.maxInstances = 1
 	manager.idleTTL = time.Minute
 	manager.commandFactory = func(_, configPath string) *exec.Cmd {
-		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$")
+		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$") //nolint:gosec // Re-executes this test binary with a fixed helper-test selector, without a shell.
 		cmd.Env = append(os.Environ(),
 			"SUB2API_XRAY_HELPER=1",
 			"SUB2API_XRAY_HELPER_CONFIG="+configPath,
@@ -709,7 +709,7 @@ func TestXrayRuntimeManagerEnforcesPerUserInstanceLimit(t *testing.T) {
 	manager.maxInstances = 4
 	manager.maxInstancesPerUser = 1
 	manager.commandFactory = func(_, configPath string) *exec.Cmd {
-		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$")
+		cmd := exec.Command(os.Args[0], "-test.run=^TestXrayRuntimeHelperProcess$") //nolint:gosec // Re-executes this test binary with a fixed helper-test selector, without a shell.
 		cmd.Env = append(os.Environ(),
 			"SUB2API_XRAY_HELPER=1",
 			"SUB2API_XRAY_HELPER_CONFIG="+configPath,

@@ -106,7 +106,7 @@ func TestStoredProxyRuntimeConfigCheck(t *testing.T) {
 		if err := os.WriteFile(path, config, 0o600); err != nil {
 			t.Fatalf("write stored proxy %d config: %v", id, err)
 		}
-		if output, err := exec.Command(bin, "run", "-test", "-config", path).CombinedOutput(); err != nil {
+		if output, err := exec.Command(bin, "run", "-test", "-config", path).CombinedOutput(); err != nil { //nolint:gosec // XRAY_BIN is supplied by the test operator; path is a generated file in t.TempDir(), with no shell involved.
 			t.Fatalf("xray rejected stored proxy %d config: %v: %s", id, err, strings.TrimSpace(string(output)))
 		}
 	}
