@@ -255,7 +255,7 @@ func (m *SingBoxRuntimeManager) start(ctx context.Context, proxyID int64, ownerU
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(m.workDir, 0o700); err != nil {
+	if err := os.MkdirAll(m.workDir, 0o700); err != nil { //nolint:gosec // workDir comes from operator configuration or a server-created temporary directory.
 		return nil, err
 	}
 	rawConfig, err := json.MarshalIndent(buildSingBoxRuntimeConfig(port, spec, blockPrivateDestinations), "", "  ")
@@ -265,15 +265,15 @@ func (m *SingBoxRuntimeManager) start(ctx context.Context, proxyID int64, ownerU
 	prefix := fmt.Sprintf("proxy-%d-%s", proxyID, hash[:12])
 	configPath := filepath.Join(m.workDir, prefix+".json")
 	logPath := filepath.Join(m.workDir, prefix+".log")
-	if err := os.WriteFile(configPath, rawConfig, 0o600); err != nil {
+	if err := os.WriteFile(configPath, rawConfig, 0o600); err != nil { //nolint:gosec // Filename contains only a numeric proxy ID and a hex digest under the operator-controlled workDir.
 		return nil, err
 	}
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600) //nolint:gosec // Filename contains only a numeric proxy ID and a hex digest under the operator-controlled workDir.
 	if err != nil {
 		_ = os.Remove(configPath)
 		return nil, err
 	}
-	cmd := exec.CommandContext(context.Background(), bin, "run", "-c", configPath)
+	cmd := exec.CommandContext(context.Background(), bin, "run", "-c", configPath) //nolint:gosec // Binary comes from operator configuration or PATH; generated config is passed as an argument without a shell.
 	if m.commandFactory != nil {
 		cmd = m.commandFactory(bin, configPath)
 	}

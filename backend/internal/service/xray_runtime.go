@@ -475,7 +475,7 @@ func (m *XrayRuntimeManager) start(ctx context.Context, proxyID int64, ownerUser
 		_ = os.Remove(configPath)
 		return nil, err
 	}
-	cmd := exec.CommandContext(context.Background(), bin, "run", "-config", configPath)
+	cmd := exec.CommandContext(context.Background(), bin, "run", "-config", configPath) //nolint:gosec // Binary comes from operator configuration or PATH; generated config is passed as an argument without a shell.
 	if m.commandFactory != nil {
 		cmd = m.commandFactory(bin, configPath)
 	}
