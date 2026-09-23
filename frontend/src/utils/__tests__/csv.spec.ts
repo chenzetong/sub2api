@@ -16,6 +16,10 @@ describe('CSV utilities', () => {
     },
   )
 
+  it('preserves the missing-value placeholder', () => {
+    expect(escapeCSVValue('-')).toBe('-')
+  })
+
   it('creates an Excel-compatible UTF-8 CSV document', () => {
     expect(createCSVContent([
       ['Name', 'Value'],
