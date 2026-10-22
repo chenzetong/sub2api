@@ -150,7 +150,12 @@ func provideCleanup(
 
 		// 应用层清理步骤可并行执行，基础设施资源（Redis/Ent）最后按顺序关闭。
 		parallelSteps := []cleanupStep{
-			{"QuotaPoolService", func() error { quotaPools.Stop(); return nil }},
+			{"QuotaPoolService", func() error {
+				if quotaPools != nil {
+					quotaPools.Stop()
+				}
+				return nil
+			}},
 			{"XrayRuntimeManager", func() error {
 				return service.DefaultXrayRuntimeManager().Close()
 			}},

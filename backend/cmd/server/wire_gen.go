@@ -465,7 +465,12 @@ func provideCleanup(
 		}
 
 		parallelSteps := []cleanupStep{
-			{"QuotaPoolService", func() error { quotaPools.Stop(); return nil }},
+			{"QuotaPoolService", func() error {
+				if quotaPools != nil {
+					quotaPools.Stop()
+				}
+				return nil
+			}},
 			{"XrayRuntimeManager", func() error {
 				return service.DefaultXrayRuntimeManager().Close()
 			}},

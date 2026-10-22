@@ -150,7 +150,7 @@ func TestQuotaPoolPostgres(t *testing.T) {
 		require.NoError(t, err)
 		gate, err := db.Conn(context.Background())
 		require.NoError(t, err)
-		defer gate.Close()
+		defer func() { require.NoError(t, gate.Close()) }()
 		_, err = gate.ExecContext(context.Background(), "SELECT pg_advisory_lock(987654321)")
 		require.NoError(t, err)
 		_, err = db.Exec(`CREATE FUNCTION hold_pool_usage() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_advisory_xact_lock(987654321); RETURN NEW; END $$;

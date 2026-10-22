@@ -25,7 +25,7 @@ func (r *quotaPoolRepository) Read(ctx context.Context) (*service.QuotaPoolFacts
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	f, err := loadQuotaPoolFacts(ctx, tx, false, true, time.Now().UTC())
 	if err != nil {
 		return nil, err
@@ -56,21 +56,21 @@ func loadQuotaPoolFacts(ctx context.Context, q sqlExecutor, lock, candidates boo
 		var p service.QuotaPool
 		var accounts, shares []byte
 		if err = rows.Scan(&p.ID, &p.Name, &p.Revision, &accounts, &shares); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		if err = json.Unmarshal(accounts, &p.AccountIDs); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		if err = json.Unmarshal(shares, &p.Shares); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		f.Allocation.Pools = append(f.Allocation.Pools, p)
 	}
 	err = rows.Err()
-	rows.Close()
+	_ = rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -87,21 +87,21 @@ func loadQuotaPoolFacts(ctx context.Context, q sqlExecutor, lock, candidates boo
 		a := &service.Account{}
 		var credentials, extra []byte
 		if err = rows.Scan(&a.ID, &a.Name, &a.Platform, &a.Type, &a.Status, &credentials, &extra, &a.OwnerUserID); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		if err = json.Unmarshal(credentials, &a.Credentials); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		if err = json.Unmarshal(extra, &a.Extra); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		f.Accounts = append(f.Accounts, a)
 	}
 	err = rows.Err()
-	rows.Close()
+	_ = rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +119,13 @@ func loadQuotaPoolFacts(ctx context.Context, q sqlExecutor, lock, candidates boo
 	for rows.Next() {
 		var u service.QuotaPoolUser
 		if err = rows.Scan(&u.ID, &u.Name, &u.Balance, &u.FrozenBalance, &u.Managed); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		f.Users = append(f.Users, u)
 	}
 	err = rows.Err()
-	rows.Close()
+	_ = rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +155,14 @@ func loadQuotaPoolFacts(ctx context.Context, q sqlExecutor, lock, candidates boo
 			var userID int64
 			var current, sample float64
 			if err = rows.Scan(&userID, &current, &sample); err != nil {
-				rows.Close()
+				_ = rows.Close()
 				return nil, err
 			}
 			f.Costs[a.ID][userID] = current
 			f.ObservedCosts[a.ID] += sample
 		}
 		err = rows.Err()
-		rows.Close()
+		_ = rows.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ func (r *quotaPoolRepository) SaveAllocation(ctx context.Context, a service.Quot
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var revision int64
 	if err = tx.QueryRowContext(ctx, "SELECT revision FROM quota_pool_config WHERE id=1 FOR UPDATE").Scan(&revision); err != nil {
 		return err
@@ -205,13 +205,13 @@ func (r *quotaPoolRepository) SaveAllocation(ctx context.Context, a service.Quot
 	for rows.Next() {
 		var id int64
 		if err = rows.Scan(&id); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return err
 		}
 		old[id] = true
 	}
 	err = rows.Err()
-	rows.Close()
+	_ = rows.Close()
 	if err != nil {
 		return err
 	}
@@ -436,7 +436,7 @@ func (r *quotaPoolRepository) SavePrediction(ctx context.Context, p *service.Quo
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	// An account-page request can finish after credentials have been replaced.
 	// Serialize with identity edits so it cannot restore an old prediction.
 	a := &service.Account{}
@@ -466,7 +466,7 @@ func (r *quotaPoolRepository) Runs(ctx context.Context) ([]service.QuotaPoolSync
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	runs := []service.QuotaPoolSyncRun{}
 	for rows.Next() {
 		var run service.QuotaPoolSyncRun
