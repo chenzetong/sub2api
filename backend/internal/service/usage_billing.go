@@ -17,6 +17,9 @@ var ErrUsageBillingRequestConflict = errors.New("usage billing request fingerpri
 
 // UsageBillingCommand describes one billable request that must be applied at most once.
 type UsageBillingCommand struct {
+	// OpenAI OAuth costs must become visible in the same transaction as the debit.
+	// This payload is deliberately excluded from the legacy request fingerprint.
+	AtomicUsageLog     *UsageLog
 	RequestID          string
 	APIKeyID           int64
 	RequestFingerprint string

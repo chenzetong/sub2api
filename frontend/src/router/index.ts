@@ -18,6 +18,8 @@ import { resolveRouteDocumentTitle } from './title'
  * Route definitions with lazy loading
  */
 const routes: RouteRecordRaw[] = [
+  { path: '/admin/quota-pools', name: 'AdminQuotaPools', component: () => import('@/views/admin/QuotaPoolsView.vue'), meta: { requiresAuth: true, requiresAdmin: true, title: 'Pool allocation', titleKey: 'quotaPools.title' } },
+  { path: '/pool-accounts', name: 'PoolAccounts', component: () => import('@/views/user/PoolAccountsView.vue'), meta: { requiresAuth: true, requiresAdmin: false, title: 'Pool accounts', titleKey: 'quotaPools.accountsTitle' } },
   // ==================== Setup Routes ====================
   {
     path: '/setup',

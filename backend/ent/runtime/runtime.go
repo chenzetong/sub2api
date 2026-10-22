@@ -32,6 +32,12 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/proxysource"
+	"github.com/Wei-Shaw/sub2api/ent/quotapool"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolconfig"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolcontractrevision"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolmanageduser"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolprediction"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolsyncrun"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/schema"
@@ -1814,6 +1820,66 @@ func init() {
 	proxysourceDescLastImportedCount := proxysourceFields[8].Descriptor()
 	// proxysource.DefaultLastImportedCount holds the default value on creation for the last_imported_count field.
 	proxysource.DefaultLastImportedCount = proxysourceDescLastImportedCount.Default.(int)
+	quotapoolFields := schema.QuotaPool{}.Fields()
+	_ = quotapoolFields
+	// quotapoolDescName is the schema descriptor for name field.
+	quotapoolDescName := quotapoolFields[0].Descriptor()
+	// quotapool.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	quotapool.NameValidator = quotapoolDescName.Validators[0].(func(string) error)
+	// quotapoolDescRevision is the schema descriptor for revision field.
+	quotapoolDescRevision := quotapoolFields[1].Descriptor()
+	// quotapool.DefaultRevision holds the default value on creation for the revision field.
+	quotapool.DefaultRevision = quotapoolDescRevision.Default.(int64)
+	quotapoolconfigFields := schema.QuotaPoolConfig{}.Fields()
+	_ = quotapoolconfigFields
+	// quotapoolconfigDescRevision is the schema descriptor for revision field.
+	quotapoolconfigDescRevision := quotapoolconfigFields[0].Descriptor()
+	// quotapoolconfig.DefaultRevision holds the default value on creation for the revision field.
+	quotapoolconfig.DefaultRevision = quotapoolconfigDescRevision.Default.(int64)
+	// quotapoolconfigDescEnabled is the schema descriptor for enabled field.
+	quotapoolconfigDescEnabled := quotapoolconfigFields[1].Descriptor()
+	// quotapoolconfig.DefaultEnabled holds the default value on creation for the enabled field.
+	quotapoolconfig.DefaultEnabled = quotapoolconfigDescEnabled.Default.(bool)
+	// quotapoolconfigDescIntervalMinutes is the schema descriptor for interval_minutes field.
+	quotapoolconfigDescIntervalMinutes := quotapoolconfigFields[2].Descriptor()
+	// quotapoolconfig.DefaultIntervalMinutes holds the default value on creation for the interval_minutes field.
+	quotapoolconfig.DefaultIntervalMinutes = quotapoolconfigDescIntervalMinutes.Default.(int)
+	quotapoolcontractrevisionFields := schema.QuotaPoolContractRevision{}.Fields()
+	_ = quotapoolcontractrevisionFields
+	// quotapoolcontractrevisionDescCreatedAt is the schema descriptor for created_at field.
+	quotapoolcontractrevisionDescCreatedAt := quotapoolcontractrevisionFields[2].Descriptor()
+	// quotapoolcontractrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	quotapoolcontractrevision.DefaultCreatedAt = quotapoolcontractrevisionDescCreatedAt.Default.(func() time.Time)
+	quotapoolmanageduserFields := schema.QuotaPoolManagedUser{}.Fields()
+	_ = quotapoolmanageduserFields
+	// quotapoolmanageduserDescManaged is the schema descriptor for managed field.
+	quotapoolmanageduserDescManaged := quotapoolmanageduserFields[1].Descriptor()
+	// quotapoolmanageduser.DefaultManaged holds the default value on creation for the managed field.
+	quotapoolmanageduser.DefaultManaged = quotapoolmanageduserDescManaged.Default.(bool)
+	quotapoolpredictionFields := schema.QuotaPoolPrediction{}.Fields()
+	_ = quotapoolpredictionFields
+	// quotapoolpredictionDescIdentity is the schema descriptor for identity field.
+	quotapoolpredictionDescIdentity := quotapoolpredictionFields[1].Descriptor()
+	// quotapoolprediction.IdentityValidator is a validator for the "identity" field. It is called by the builders before save.
+	quotapoolprediction.IdentityValidator = quotapoolpredictionDescIdentity.Validators[0].(func(string) error)
+	quotapoolsyncrunFields := schema.QuotaPoolSyncRun{}.Fields()
+	_ = quotapoolsyncrunFields
+	// quotapoolsyncrunDescOperationKey is the schema descriptor for operation_key field.
+	quotapoolsyncrunDescOperationKey := quotapoolsyncrunFields[0].Descriptor()
+	// quotapoolsyncrun.OperationKeyValidator is a validator for the "operation_key" field. It is called by the builders before save.
+	quotapoolsyncrun.OperationKeyValidator = quotapoolsyncrunDescOperationKey.Validators[0].(func(string) error)
+	// quotapoolsyncrunDescSource is the schema descriptor for source field.
+	quotapoolsyncrunDescSource := quotapoolsyncrunFields[1].Descriptor()
+	// quotapoolsyncrun.SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	quotapoolsyncrun.SourceValidator = quotapoolsyncrunDescSource.Validators[0].(func(string) error)
+	// quotapoolsyncrunDescStatus is the schema descriptor for status field.
+	quotapoolsyncrunDescStatus := quotapoolsyncrunFields[2].Descriptor()
+	// quotapoolsyncrun.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	quotapoolsyncrun.StatusValidator = quotapoolsyncrunDescStatus.Validators[0].(func(string) error)
+	// quotapoolsyncrunDescCreatedAt is the schema descriptor for created_at field.
+	quotapoolsyncrunDescCreatedAt := quotapoolsyncrunFields[4].Descriptor()
+	// quotapoolsyncrun.DefaultCreatedAt holds the default value on creation for the created_at field.
+	quotapoolsyncrun.DefaultCreatedAt = quotapoolsyncrunDescCreatedAt.Default.(func() time.Time)
 	redeemcodeFields := schema.RedeemCode{}.Fields()
 	_ = redeemcodeFields
 	// redeemcodeDescCode is the schema descriptor for code field.

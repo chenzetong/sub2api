@@ -25,6 +25,12 @@ func RegisterUserRoutes(
 	// 用户管理面变更类操作入审计（含 TOTP 启用/禁用、step-up 验证、密码修改等安全事件）
 	authenticated.Use(gin.HandlerFunc(auditLog))
 	{
+		poolAccounts := authenticated.Group("/pool-accounts")
+		poolAccounts.Use(panelRateLimiter.Heavy())
+		poolAccounts.GET("", h.QuotaPools.Accounts)
+		poolAccounts.GET("/:id", h.QuotaPools.Account)
+		poolAccounts.GET("/:id/usage", h.QuotaPools.Account)
+		poolAccounts.GET("/:id/stats", h.QuotaPools.Stats)
 		// 用户接口
 		user := authenticated.Group("/user")
 		{

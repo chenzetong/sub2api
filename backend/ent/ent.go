@@ -39,6 +39,14 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/proxysource"
+	"github.com/Wei-Shaw/sub2api/ent/quotapool"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolaccount"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolconfig"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolcontractrevision"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolmanageduser"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolprediction"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolshare"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolsyncrun"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
@@ -140,6 +148,14 @@ func checkColumn(t, c string) error {
 			promocodeusage.Table:                promocodeusage.ValidColumn,
 			proxy.Table:                         proxy.ValidColumn,
 			proxysource.Table:                   proxysource.ValidColumn,
+			quotapool.Table:                     quotapool.ValidColumn,
+			quotapoolaccount.Table:              quotapoolaccount.ValidColumn,
+			quotapoolconfig.Table:               quotapoolconfig.ValidColumn,
+			quotapoolcontractrevision.Table:     quotapoolcontractrevision.ValidColumn,
+			quotapoolmanageduser.Table:          quotapoolmanageduser.ValidColumn,
+			quotapoolprediction.Table:           quotapoolprediction.ValidColumn,
+			quotapoolshare.Table:                quotapoolshare.ValidColumn,
+			quotapoolsyncrun.Table:              quotapoolsyncrun.ValidColumn,
 			redeemcode.Table:                    redeemcode.ValidColumn,
 			redeemcodeusage.Table:               redeemcodeusage.ValidColumn,
 			securitysecret.Table:                securitysecret.ValidColumn,

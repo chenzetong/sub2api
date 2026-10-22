@@ -729,6 +729,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   }
   items.push(
     { path: '/my/groups', label: navLabel('nav.myGroups', '我的分组'), icon: FolderIcon, hideInSimpleMode: true, featureFlag: flagUserResources },
+    { path: '/pool-accounts', label: t('quotaPools.accountsTitle'), icon: GlobeIcon, hideInSimpleMode: true },
     { path: '/my/accounts', label: navLabel('nav.myAccounts', '我的账号'), icon: GlobeIcon, hideInSimpleMode: true, featureFlag: flagUserResources },
     { path: '/my/proxies', label: navLabel('nav.myProxies', '我的代理'), icon: ServerIcon, hideInSimpleMode: true, featureFlag: flagUserResources },
     { path: '/my/assigned-subscriptions', label: navLabel('nav.assignSubscriptions', '分配订阅'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagUserResources },
@@ -805,6 +806,7 @@ const adminNavItems = computed((): NavItem[] => {
     // 「仅充值」站点连管理端的「订阅管理」入口也一并收起（路由本身不拦截）。
     { path: '/admin/subscriptions', label: t('nav.subscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
     { path: '/admin/accounts', label: t('nav.accounts'), icon: GlobeIcon },
+    { path: '/admin/quota-pools', label: t('quotaPools.title'), icon: UsersIcon },
     { path: '/admin/plugins', label: t('nav.plugins'), icon: PluginIcon, featureFlag: flagPluginManagement },
     { path: '/admin/announcements', label: t('nav.announcements'), icon: BellIcon },
     { path: '/admin/proxies', label: t('nav.proxies'), icon: ServerIcon },

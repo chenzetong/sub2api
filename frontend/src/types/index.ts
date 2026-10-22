@@ -1476,7 +1476,17 @@ export interface GrokBillingSummary {
   failed_windows?: string[]
 }
 
+export interface QuotaEstimate {
+  total_cost: number | null
+  source: 'current' | 'last_valid' | 'unavailable'
+  reason?: string
+  observed_at?: string
+  window_start?: string
+  window_end?: string
+}
+
 export interface AccountUsageInfo {
+  seven_day_estimate?: QuotaEstimate
   source?: 'passive' | 'active'
   updated_at: string | null
   five_hour: UsageProgress | null

@@ -275,6 +275,7 @@ func ProvideAccountUsageService(
 	grokQuotaService *GrokQuotaService,
 	openAIQuotaService *OpenAIQuotaService,
 	cache *UsageCache,
+	quotaPools *QuotaPoolService,
 	identityCache IdentityCache,
 	tlsFPProfileService *TLSFingerprintProfileService,
 	openAIGatewayService *OpenAIGatewayService,
@@ -292,6 +293,7 @@ func ProvideAccountUsageService(
 		identityCache,
 		tlsFPProfileService,
 	)
+	service.quotaPools = quotaPools
 	service.agentIdentityWS = openAIGatewayService
 	return service
 }
@@ -900,6 +902,7 @@ func ProvideAPIKeyService(
 
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
+	ProvideQuotaPoolService,
 	// Core services
 	ProvideAuthService,
 	NewPasskeyService,
@@ -1131,4 +1134,10 @@ func ProvideClaudeResetCreditService(accounts AccountRepository, tokens *ClaudeT
 	s := NewClaudeResetCreditService(accounts, tokens, proxies, settings)
 	s.ConfigureRedemption(idem, locks)
 	return s
+}
+
+func ProvideQuotaPoolService(repo QuotaPoolRepository, usage UsageLogRepository, billing *BillingCacheService, auth APIKeyAuthCacheInvalidator) *QuotaPoolService {
+	svc := NewQuotaPoolService(repo, usage, billing, auth)
+	svc.Start()
+	return svc
 }

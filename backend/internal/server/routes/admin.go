@@ -31,6 +31,14 @@ func RegisterAdminRoutes(
 	admin.Use(gin.HandlerFunc(auditLog))
 	admin.Use(middleware.AdminComplianceGuard(settingService))
 	{
+		pools := admin.Group("/quota-pools")
+		pools.GET("", h.QuotaPools.Allocation)
+		pools.PUT("", h.QuotaPools.SaveAllocation)
+		pools.GET("/preview", h.QuotaPools.Preview)
+		pools.POST("/sync", h.QuotaPools.Sync)
+		pools.GET("/settings", h.QuotaPools.Settings)
+		pools.PUT("/settings", h.QuotaPools.UpdateSettings)
+		pools.GET("/runs", h.QuotaPools.Runs)
 		// 部署与运营合规确认
 		registerAdminComplianceRoutes(admin, h)
 

@@ -68,6 +68,22 @@ type Tx struct {
 	Proxy *ProxyClient
 	// ProxySource is the client for interacting with the ProxySource builders.
 	ProxySource *ProxySourceClient
+	// QuotaPool is the client for interacting with the QuotaPool builders.
+	QuotaPool *QuotaPoolClient
+	// QuotaPoolAccount is the client for interacting with the QuotaPoolAccount builders.
+	QuotaPoolAccount *QuotaPoolAccountClient
+	// QuotaPoolConfig is the client for interacting with the QuotaPoolConfig builders.
+	QuotaPoolConfig *QuotaPoolConfigClient
+	// QuotaPoolContractRevision is the client for interacting with the QuotaPoolContractRevision builders.
+	QuotaPoolContractRevision *QuotaPoolContractRevisionClient
+	// QuotaPoolManagedUser is the client for interacting with the QuotaPoolManagedUser builders.
+	QuotaPoolManagedUser *QuotaPoolManagedUserClient
+	// QuotaPoolPrediction is the client for interacting with the QuotaPoolPrediction builders.
+	QuotaPoolPrediction *QuotaPoolPredictionClient
+	// QuotaPoolShare is the client for interacting with the QuotaPoolShare builders.
+	QuotaPoolShare *QuotaPoolShareClient
+	// QuotaPoolSyncRun is the client for interacting with the QuotaPoolSyncRun builders.
+	QuotaPoolSyncRun *QuotaPoolSyncRunClient
 	// RedeemCode is the client for interacting with the RedeemCode builders.
 	RedeemCode *RedeemCodeClient
 	// RedeemCodeUsage is the client for interacting with the RedeemCodeUsage builders.
@@ -254,6 +270,14 @@ func (tx *Tx) init() {
 	tx.PromoCodeUsage = NewPromoCodeUsageClient(tx.config)
 	tx.Proxy = NewProxyClient(tx.config)
 	tx.ProxySource = NewProxySourceClient(tx.config)
+	tx.QuotaPool = NewQuotaPoolClient(tx.config)
+	tx.QuotaPoolAccount = NewQuotaPoolAccountClient(tx.config)
+	tx.QuotaPoolConfig = NewQuotaPoolConfigClient(tx.config)
+	tx.QuotaPoolContractRevision = NewQuotaPoolContractRevisionClient(tx.config)
+	tx.QuotaPoolManagedUser = NewQuotaPoolManagedUserClient(tx.config)
+	tx.QuotaPoolPrediction = NewQuotaPoolPredictionClient(tx.config)
+	tx.QuotaPoolShare = NewQuotaPoolShareClient(tx.config)
+	tx.QuotaPoolSyncRun = NewQuotaPoolSyncRunClient(tx.config)
 	tx.RedeemCode = NewRedeemCodeClient(tx.config)
 	tx.RedeemCodeUsage = NewRedeemCodeUsageClient(tx.config)
 	tx.SecuritySecret = NewSecuritySecretClient(tx.config)

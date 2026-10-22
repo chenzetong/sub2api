@@ -1,0 +1,92 @@
+export default {
+  title: 'Pool allocation',
+  accountsTitle: 'Pool accounts',
+  description:
+    'Allocate account forecasts by contract shares. Saved contracts apply to current windows; balance synchronization is separate.',
+  readOnlyDescription:
+    'Read-only access to accounts, usage and statistics in pools where you hold a positive share.',
+  pool: 'Pool',
+  poolName: 'Pool name',
+  schedule: 'Scheduled balance synchronization',
+  balanceWarning:
+    'Dedicated carpool balances are replaced by remaining pool entitlements. Subsequent syncs also replace top-ups and manual adjustments.',
+  autoSync: 'Enable automatic sync',
+  interval: 'Interval (minutes)',
+  saveSettings: 'Save sync settings',
+  nextRun: 'Next run',
+  addPool: 'Add pool',
+  merge: 'Merge selected pools',
+  split: 'Split selected accounts',
+  saveAllocation: 'Save contracts',
+  preview: 'Preview allocation',
+  syncNow: 'Synchronize balances',
+  accounts: 'Source accounts (multiple selection)',
+  shares: 'Contract shares',
+  addUser: 'Add participant',
+  removeShare: 'Remove share',
+  removePool: 'Remove pool',
+  selectPool: 'Select pool {name}',
+  user: 'Participant',
+  entitlement: 'Entitlement',
+  consumed: 'Account cost',
+  frozen: 'Frozen balance',
+  balance: 'Current balance',
+  target: 'Target balance',
+  status: 'Status',
+  history: 'Recent syncs',
+  noHistory: 'No synchronization history.',
+  noPools:
+    'No pools configured. Add a pool, then choose accounts and participants.',
+  noUsers: 'No participants to synchronize.',
+  noAccess: 'No accounts in pools with a positive share.',
+  noResults: 'No matching accounts.',
+  search: 'Search accounts or pools',
+  details: 'Usage details',
+  pending: 'Awaiting estimate',
+  lastValid: 'Using last valid forecast',
+  retry: 'Retry',
+  loadFailed: 'Could not load data. Please retry.',
+  actionFailed: 'Operation failed. Please retry.',
+  saved: 'Contracts saved. Balances have not been changed.',
+  settingsSaved: 'Sync settings saved.',
+  synced: 'Synchronization completed. Check reasons for skipped participants.',
+  unsaved: 'Save contracts before previewing or synchronizing balances.',
+  mergeCleared:
+    'Source contracts differ. Shares were cleared; enter the new contract.',
+  reasons: {
+    contract_changed: 'Contracts changed. Reload and preview again.',
+    sync_timeout: 'Sync timed out; balances were not changed. Retry.',
+    sync_cancelled: 'Sync cancelled; balances were not changed.',
+    transaction_failed:
+      'Transaction failed; balances were not changed. Retry or check the server logs.',
+    unsupported_account: 'Unsupported source account',
+    missing_snapshot: 'No quota snapshot',
+    invalid_snapshot: 'Invalid quota snapshot',
+    missing_observation_time: 'No valid observation time',
+    unknown_window: 'Unknown window boundaries',
+    expired_snapshot: 'Expired snapshot; awaiting a new window observation',
+    no_previous_prediction: 'Zero utilization with no previous forecast',
+    invalid_cost: 'No valid window cost',
+    invalid_prediction: 'Invalid forecast',
+    missing_account: 'Source account unavailable',
+    incomplete_prediction: 'Incomplete source forecasts; entire balance skipped'
+  },
+  states: {
+    preview: 'Preview',
+    ready: 'Ready',
+    applied: 'Applied',
+    skipped: 'Skipped',
+    completed: 'Completed',
+    completed_with_skips: 'Completed with skips',
+    failed: 'Failed'
+  },
+  sources: {
+    current: 'Current forecast',
+    last_valid: 'Previous forecast',
+    unavailable: 'Awaiting estimate'
+  },
+  runSources: {
+    manual: 'Manual',
+    scheduled: 'Scheduled'
+  }
+}

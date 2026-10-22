@@ -41,6 +41,7 @@
         <LoadingSpinner />
       </div>
 
+      <div v-else-if="loadError" role="alert" class="p-6 text-red-600">{{ t('quotaPools.loadFailed') }} <button class="btn btn-secondary" @click="loadStats">{{ t('quotaPools.retry') }}</button></div>
       <template v-else-if="stats">
         <!-- Row 1: Main Stats Cards -->
         <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -485,7 +486,8 @@ const { t } = useI18n()
 
 const props = defineProps<{
   show: boolean
-  account: Account | null
+  account: Pick<Account, 'id' | 'name' | 'status'> | null
+  loadStats?: (id: number) => Promise<AccountUsageStatsResponse>
 }>()
 
 const emit = defineEmits<{
@@ -493,6 +495,7 @@ const emit = defineEmits<{
 }>()
 
 const loading = ref(false)
+const loadError = ref(false)
 const stats = ref<AccountUsageStatsResponse | null>(null)
 
 // Dark mode detection
@@ -658,10 +661,12 @@ const loadStats = async () => {
   if (!props.account) return
 
   loading.value = true
+  loadError.value = false
   try {
-    stats.value = await adminAPI.accounts.getStats(props.account.id, 30)
+    stats.value = await (props.loadStats ? props.loadStats(props.account.id) : adminAPI.accounts.getStats(props.account.id, 30))
   } catch (error) {
     console.error('Failed to load account stats:', error)
+    loadError.value = true
     stats.value = null
   } finally {
     loading.value = false

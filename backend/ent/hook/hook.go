@@ -333,6 +333,102 @@ func (f ProxySourceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProxySourceMutation", m)
 }
 
+// The QuotaPoolFunc type is an adapter to allow the use of ordinary
+// function as QuotaPool mutator.
+type QuotaPoolFunc func(context.Context, *ent.QuotaPoolMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolMutation", m)
+}
+
+// The QuotaPoolAccountFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolAccount mutator.
+type QuotaPoolAccountFunc func(context.Context, *ent.QuotaPoolAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolAccountMutation", m)
+}
+
+// The QuotaPoolConfigFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolConfig mutator.
+type QuotaPoolConfigFunc func(context.Context, *ent.QuotaPoolConfigMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolConfigFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolConfigMutation", m)
+}
+
+// The QuotaPoolContractRevisionFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolContractRevision mutator.
+type QuotaPoolContractRevisionFunc func(context.Context, *ent.QuotaPoolContractRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolContractRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolContractRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolContractRevisionMutation", m)
+}
+
+// The QuotaPoolManagedUserFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolManagedUser mutator.
+type QuotaPoolManagedUserFunc func(context.Context, *ent.QuotaPoolManagedUserMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolManagedUserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolManagedUserMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolManagedUserMutation", m)
+}
+
+// The QuotaPoolPredictionFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolPrediction mutator.
+type QuotaPoolPredictionFunc func(context.Context, *ent.QuotaPoolPredictionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolPredictionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolPredictionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolPredictionMutation", m)
+}
+
+// The QuotaPoolShareFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolShare mutator.
+type QuotaPoolShareFunc func(context.Context, *ent.QuotaPoolShareMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolShareFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolShareMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolShareMutation", m)
+}
+
+// The QuotaPoolSyncRunFunc type is an adapter to allow the use of ordinary
+// function as QuotaPoolSyncRun mutator.
+type QuotaPoolSyncRunFunc func(context.Context, *ent.QuotaPoolSyncRunMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f QuotaPoolSyncRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.QuotaPoolSyncRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.QuotaPoolSyncRunMutation", m)
+}
+
 // The RedeemCodeFunc type is an adapter to allow the use of ordinary
 // function as RedeemCode mutator.
 type RedeemCodeFunc func(context.Context, *ent.RedeemCodeMutation) (ent.Value, error)

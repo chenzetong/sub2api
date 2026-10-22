@@ -40,6 +40,14 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/proxysource"
+	"github.com/Wei-Shaw/sub2api/ent/quotapool"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolaccount"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolconfig"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolcontractrevision"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolmanageduser"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolprediction"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolshare"
+	"github.com/Wei-Shaw/sub2api/ent/quotapoolsyncrun"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
@@ -93,6 +101,14 @@ const (
 	TypePromoCodeUsage                = "PromoCodeUsage"
 	TypeProxy                         = "Proxy"
 	TypeProxySource                   = "ProxySource"
+	TypeQuotaPool                     = "QuotaPool"
+	TypeQuotaPoolAccount              = "QuotaPoolAccount"
+	TypeQuotaPoolConfig               = "QuotaPoolConfig"
+	TypeQuotaPoolContractRevision     = "QuotaPoolContractRevision"
+	TypeQuotaPoolManagedUser          = "QuotaPoolManagedUser"
+	TypeQuotaPoolPrediction           = "QuotaPoolPrediction"
+	TypeQuotaPoolShare                = "QuotaPoolShare"
+	TypeQuotaPoolSyncRun              = "QuotaPoolSyncRun"
 	TypeRedeemCode                    = "RedeemCode"
 	TypeRedeemCodeUsage               = "RedeemCodeUsage"
 	TypeSecuritySecret                = "SecuritySecret"
@@ -40508,6 +40524,4079 @@ func (m *ProxySourceMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ProxySourceMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ProxySource edge %s", name)
+}
+
+// QuotaPoolMutation represents an operation that mutates the QuotaPool nodes in the graph.
+type QuotaPoolMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	name          *string
+	revision      *int64
+	addrevision   *int64
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*QuotaPool, error)
+	predicates    []predicate.QuotaPool
+}
+
+var _ ent.Mutation = (*QuotaPoolMutation)(nil)
+
+// quotapoolOption allows management of the mutation configuration using functional options.
+type quotapoolOption func(*QuotaPoolMutation)
+
+// newQuotaPoolMutation creates new mutation for the QuotaPool entity.
+func newQuotaPoolMutation(c config, op Op, opts ...quotapoolOption) *QuotaPoolMutation {
+	m := &QuotaPoolMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPool,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolID sets the ID field of the mutation.
+func withQuotaPoolID(id int64) quotapoolOption {
+	return func(m *QuotaPoolMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPool
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPool, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPool.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPool sets the old QuotaPool of the mutation.
+func withQuotaPool(node *QuotaPool) quotapoolOption {
+	return func(m *QuotaPoolMutation) {
+		m.oldValue = func(context.Context) (*QuotaPool, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPool.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *QuotaPoolMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *QuotaPoolMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the QuotaPool entity.
+// If the QuotaPool object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *QuotaPoolMutation) ResetName() {
+	m.name = nil
+}
+
+// SetRevision sets the "revision" field.
+func (m *QuotaPoolMutation) SetRevision(i int64) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *QuotaPoolMutation) Revision() (r int64, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the QuotaPool entity.
+// If the QuotaPool object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolMutation) OldRevision(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *QuotaPoolMutation) AddRevision(i int64) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *QuotaPoolMutation) AddedRevision() (r int64, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *QuotaPoolMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// Where appends a list predicates to the QuotaPoolMutation builder.
+func (m *QuotaPoolMutation) Where(ps ...predicate.QuotaPool) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPool, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPool).
+func (m *QuotaPoolMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.name != nil {
+		fields = append(fields, quotapool.FieldName)
+	}
+	if m.revision != nil {
+		fields = append(fields, quotapool.FieldRevision)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapool.FieldName:
+		return m.Name()
+	case quotapool.FieldRevision:
+		return m.Revision()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapool.FieldName:
+		return m.OldName(ctx)
+	case quotapool.FieldRevision:
+		return m.OldRevision(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPool field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapool.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case quotapool.FieldRevision:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPool field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolMutation) AddedFields() []string {
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, quotapool.FieldRevision)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapool.FieldRevision:
+		return m.AddedRevision()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapool.FieldRevision:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPool numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPool nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolMutation) ResetField(name string) error {
+	switch name {
+	case quotapool.FieldName:
+		m.ResetName()
+		return nil
+	case quotapool.FieldRevision:
+		m.ResetRevision()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPool field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPool unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPool edge %s", name)
+}
+
+// QuotaPoolAccountMutation represents an operation that mutates the QuotaPoolAccount nodes in the graph.
+type QuotaPoolAccountMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	pool_id       *int64
+	addpool_id    *int64
+	account_id    *int64
+	addaccount_id *int64
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*QuotaPoolAccount, error)
+	predicates    []predicate.QuotaPoolAccount
+}
+
+var _ ent.Mutation = (*QuotaPoolAccountMutation)(nil)
+
+// quotapoolaccountOption allows management of the mutation configuration using functional options.
+type quotapoolaccountOption func(*QuotaPoolAccountMutation)
+
+// newQuotaPoolAccountMutation creates new mutation for the QuotaPoolAccount entity.
+func newQuotaPoolAccountMutation(c config, op Op, opts ...quotapoolaccountOption) *QuotaPoolAccountMutation {
+	m := &QuotaPoolAccountMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolAccount,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolAccountID sets the ID field of the mutation.
+func withQuotaPoolAccountID(id int64) quotapoolaccountOption {
+	return func(m *QuotaPoolAccountMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolAccount
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolAccount, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolAccount.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolAccount sets the old QuotaPoolAccount of the mutation.
+func withQuotaPoolAccount(node *QuotaPoolAccount) quotapoolaccountOption {
+	return func(m *QuotaPoolAccountMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolAccount, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolAccountMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolAccountMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolAccountMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolAccountMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolAccount.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetPoolID sets the "pool_id" field.
+func (m *QuotaPoolAccountMutation) SetPoolID(i int64) {
+	m.pool_id = &i
+	m.addpool_id = nil
+}
+
+// PoolID returns the value of the "pool_id" field in the mutation.
+func (m *QuotaPoolAccountMutation) PoolID() (r int64, exists bool) {
+	v := m.pool_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPoolID returns the old "pool_id" field's value of the QuotaPoolAccount entity.
+// If the QuotaPoolAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolAccountMutation) OldPoolID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPoolID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPoolID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPoolID: %w", err)
+	}
+	return oldValue.PoolID, nil
+}
+
+// AddPoolID adds i to the "pool_id" field.
+func (m *QuotaPoolAccountMutation) AddPoolID(i int64) {
+	if m.addpool_id != nil {
+		*m.addpool_id += i
+	} else {
+		m.addpool_id = &i
+	}
+}
+
+// AddedPoolID returns the value that was added to the "pool_id" field in this mutation.
+func (m *QuotaPoolAccountMutation) AddedPoolID() (r int64, exists bool) {
+	v := m.addpool_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPoolID resets all changes to the "pool_id" field.
+func (m *QuotaPoolAccountMutation) ResetPoolID() {
+	m.pool_id = nil
+	m.addpool_id = nil
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *QuotaPoolAccountMutation) SetAccountID(i int64) {
+	m.account_id = &i
+	m.addaccount_id = nil
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *QuotaPoolAccountMutation) AccountID() (r int64, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the QuotaPoolAccount entity.
+// If the QuotaPoolAccount object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolAccountMutation) OldAccountID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// AddAccountID adds i to the "account_id" field.
+func (m *QuotaPoolAccountMutation) AddAccountID(i int64) {
+	if m.addaccount_id != nil {
+		*m.addaccount_id += i
+	} else {
+		m.addaccount_id = &i
+	}
+}
+
+// AddedAccountID returns the value that was added to the "account_id" field in this mutation.
+func (m *QuotaPoolAccountMutation) AddedAccountID() (r int64, exists bool) {
+	v := m.addaccount_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *QuotaPoolAccountMutation) ResetAccountID() {
+	m.account_id = nil
+	m.addaccount_id = nil
+}
+
+// Where appends a list predicates to the QuotaPoolAccountMutation builder.
+func (m *QuotaPoolAccountMutation) Where(ps ...predicate.QuotaPoolAccount) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolAccountMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolAccountMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolAccount, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolAccountMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolAccountMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolAccount).
+func (m *QuotaPoolAccountMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolAccountMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.pool_id != nil {
+		fields = append(fields, quotapoolaccount.FieldPoolID)
+	}
+	if m.account_id != nil {
+		fields = append(fields, quotapoolaccount.FieldAccountID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolAccountMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolaccount.FieldPoolID:
+		return m.PoolID()
+	case quotapoolaccount.FieldAccountID:
+		return m.AccountID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolAccountMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolaccount.FieldPoolID:
+		return m.OldPoolID(ctx)
+	case quotapoolaccount.FieldAccountID:
+		return m.OldAccountID(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolAccount field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolAccountMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolaccount.FieldPoolID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPoolID(v)
+		return nil
+	case quotapoolaccount.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolAccount field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolAccountMutation) AddedFields() []string {
+	var fields []string
+	if m.addpool_id != nil {
+		fields = append(fields, quotapoolaccount.FieldPoolID)
+	}
+	if m.addaccount_id != nil {
+		fields = append(fields, quotapoolaccount.FieldAccountID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolAccountMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolaccount.FieldPoolID:
+		return m.AddedPoolID()
+	case quotapoolaccount.FieldAccountID:
+		return m.AddedAccountID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolAccountMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolaccount.FieldPoolID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPoolID(v)
+		return nil
+	case quotapoolaccount.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAccountID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolAccount numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolAccountMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolAccountMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolAccountMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPoolAccount nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolAccountMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolaccount.FieldPoolID:
+		m.ResetPoolID()
+		return nil
+	case quotapoolaccount.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolAccount field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolAccountMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolAccountMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolAccountMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolAccountMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolAccountMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolAccountMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolAccountMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolAccount unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolAccountMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolAccount edge %s", name)
+}
+
+// QuotaPoolConfigMutation represents an operation that mutates the QuotaPoolConfig nodes in the graph.
+type QuotaPoolConfigMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int64
+	revision            *int64
+	addrevision         *int64
+	enabled             *bool
+	interval_minutes    *int
+	addinterval_minutes *int
+	next_run_at         *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*QuotaPoolConfig, error)
+	predicates          []predicate.QuotaPoolConfig
+}
+
+var _ ent.Mutation = (*QuotaPoolConfigMutation)(nil)
+
+// quotapoolconfigOption allows management of the mutation configuration using functional options.
+type quotapoolconfigOption func(*QuotaPoolConfigMutation)
+
+// newQuotaPoolConfigMutation creates new mutation for the QuotaPoolConfig entity.
+func newQuotaPoolConfigMutation(c config, op Op, opts ...quotapoolconfigOption) *QuotaPoolConfigMutation {
+	m := &QuotaPoolConfigMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolConfig,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolConfigID sets the ID field of the mutation.
+func withQuotaPoolConfigID(id int64) quotapoolconfigOption {
+	return func(m *QuotaPoolConfigMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolConfig
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolConfig, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolConfig.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolConfig sets the old QuotaPoolConfig of the mutation.
+func withQuotaPoolConfig(node *QuotaPoolConfig) quotapoolconfigOption {
+	return func(m *QuotaPoolConfigMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolConfig, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolConfigMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolConfigMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolConfigMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolConfigMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolConfig.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetRevision sets the "revision" field.
+func (m *QuotaPoolConfigMutation) SetRevision(i int64) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *QuotaPoolConfigMutation) Revision() (r int64, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the QuotaPoolConfig entity.
+// If the QuotaPoolConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolConfigMutation) OldRevision(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *QuotaPoolConfigMutation) AddRevision(i int64) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *QuotaPoolConfigMutation) AddedRevision() (r int64, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *QuotaPoolConfigMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *QuotaPoolConfigMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *QuotaPoolConfigMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the QuotaPoolConfig entity.
+// If the QuotaPoolConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolConfigMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *QuotaPoolConfigMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetIntervalMinutes sets the "interval_minutes" field.
+func (m *QuotaPoolConfigMutation) SetIntervalMinutes(i int) {
+	m.interval_minutes = &i
+	m.addinterval_minutes = nil
+}
+
+// IntervalMinutes returns the value of the "interval_minutes" field in the mutation.
+func (m *QuotaPoolConfigMutation) IntervalMinutes() (r int, exists bool) {
+	v := m.interval_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIntervalMinutes returns the old "interval_minutes" field's value of the QuotaPoolConfig entity.
+// If the QuotaPoolConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolConfigMutation) OldIntervalMinutes(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIntervalMinutes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIntervalMinutes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIntervalMinutes: %w", err)
+	}
+	return oldValue.IntervalMinutes, nil
+}
+
+// AddIntervalMinutes adds i to the "interval_minutes" field.
+func (m *QuotaPoolConfigMutation) AddIntervalMinutes(i int) {
+	if m.addinterval_minutes != nil {
+		*m.addinterval_minutes += i
+	} else {
+		m.addinterval_minutes = &i
+	}
+}
+
+// AddedIntervalMinutes returns the value that was added to the "interval_minutes" field in this mutation.
+func (m *QuotaPoolConfigMutation) AddedIntervalMinutes() (r int, exists bool) {
+	v := m.addinterval_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetIntervalMinutes resets all changes to the "interval_minutes" field.
+func (m *QuotaPoolConfigMutation) ResetIntervalMinutes() {
+	m.interval_minutes = nil
+	m.addinterval_minutes = nil
+}
+
+// SetNextRunAt sets the "next_run_at" field.
+func (m *QuotaPoolConfigMutation) SetNextRunAt(t time.Time) {
+	m.next_run_at = &t
+}
+
+// NextRunAt returns the value of the "next_run_at" field in the mutation.
+func (m *QuotaPoolConfigMutation) NextRunAt() (r time.Time, exists bool) {
+	v := m.next_run_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextRunAt returns the old "next_run_at" field's value of the QuotaPoolConfig entity.
+// If the QuotaPoolConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolConfigMutation) OldNextRunAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextRunAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextRunAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextRunAt: %w", err)
+	}
+	return oldValue.NextRunAt, nil
+}
+
+// ClearNextRunAt clears the value of the "next_run_at" field.
+func (m *QuotaPoolConfigMutation) ClearNextRunAt() {
+	m.next_run_at = nil
+	m.clearedFields[quotapoolconfig.FieldNextRunAt] = struct{}{}
+}
+
+// NextRunAtCleared returns if the "next_run_at" field was cleared in this mutation.
+func (m *QuotaPoolConfigMutation) NextRunAtCleared() bool {
+	_, ok := m.clearedFields[quotapoolconfig.FieldNextRunAt]
+	return ok
+}
+
+// ResetNextRunAt resets all changes to the "next_run_at" field.
+func (m *QuotaPoolConfigMutation) ResetNextRunAt() {
+	m.next_run_at = nil
+	delete(m.clearedFields, quotapoolconfig.FieldNextRunAt)
+}
+
+// Where appends a list predicates to the QuotaPoolConfigMutation builder.
+func (m *QuotaPoolConfigMutation) Where(ps ...predicate.QuotaPoolConfig) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolConfigMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolConfigMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolConfig, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolConfigMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolConfigMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolConfig).
+func (m *QuotaPoolConfigMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolConfigMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.revision != nil {
+		fields = append(fields, quotapoolconfig.FieldRevision)
+	}
+	if m.enabled != nil {
+		fields = append(fields, quotapoolconfig.FieldEnabled)
+	}
+	if m.interval_minutes != nil {
+		fields = append(fields, quotapoolconfig.FieldIntervalMinutes)
+	}
+	if m.next_run_at != nil {
+		fields = append(fields, quotapoolconfig.FieldNextRunAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolConfigMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolconfig.FieldRevision:
+		return m.Revision()
+	case quotapoolconfig.FieldEnabled:
+		return m.Enabled()
+	case quotapoolconfig.FieldIntervalMinutes:
+		return m.IntervalMinutes()
+	case quotapoolconfig.FieldNextRunAt:
+		return m.NextRunAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolConfigMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolconfig.FieldRevision:
+		return m.OldRevision(ctx)
+	case quotapoolconfig.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case quotapoolconfig.FieldIntervalMinutes:
+		return m.OldIntervalMinutes(ctx)
+	case quotapoolconfig.FieldNextRunAt:
+		return m.OldNextRunAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolConfig field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolConfigMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolconfig.FieldRevision:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case quotapoolconfig.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case quotapoolconfig.FieldIntervalMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIntervalMinutes(v)
+		return nil
+	case quotapoolconfig.FieldNextRunAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextRunAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolConfig field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolConfigMutation) AddedFields() []string {
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, quotapoolconfig.FieldRevision)
+	}
+	if m.addinterval_minutes != nil {
+		fields = append(fields, quotapoolconfig.FieldIntervalMinutes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolConfigMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolconfig.FieldRevision:
+		return m.AddedRevision()
+	case quotapoolconfig.FieldIntervalMinutes:
+		return m.AddedIntervalMinutes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolConfigMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolconfig.FieldRevision:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	case quotapoolconfig.FieldIntervalMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIntervalMinutes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolConfig numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolConfigMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(quotapoolconfig.FieldNextRunAt) {
+		fields = append(fields, quotapoolconfig.FieldNextRunAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolConfigMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolConfigMutation) ClearField(name string) error {
+	switch name {
+	case quotapoolconfig.FieldNextRunAt:
+		m.ClearNextRunAt()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolConfig nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolConfigMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolconfig.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case quotapoolconfig.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case quotapoolconfig.FieldIntervalMinutes:
+		m.ResetIntervalMinutes()
+		return nil
+	case quotapoolconfig.FieldNextRunAt:
+		m.ResetNextRunAt()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolConfig field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolConfigMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolConfigMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolConfigMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolConfigMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolConfigMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolConfigMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolConfigMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolConfig unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolConfigMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolConfig edge %s", name)
+}
+
+// QuotaPoolContractRevisionMutation represents an operation that mutates the QuotaPoolContractRevision nodes in the graph.
+type QuotaPoolContractRevisionMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	revision      *int64
+	addrevision   *int64
+	allocation    *map[string]interface{}
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*QuotaPoolContractRevision, error)
+	predicates    []predicate.QuotaPoolContractRevision
+}
+
+var _ ent.Mutation = (*QuotaPoolContractRevisionMutation)(nil)
+
+// quotapoolcontractrevisionOption allows management of the mutation configuration using functional options.
+type quotapoolcontractrevisionOption func(*QuotaPoolContractRevisionMutation)
+
+// newQuotaPoolContractRevisionMutation creates new mutation for the QuotaPoolContractRevision entity.
+func newQuotaPoolContractRevisionMutation(c config, op Op, opts ...quotapoolcontractrevisionOption) *QuotaPoolContractRevisionMutation {
+	m := &QuotaPoolContractRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolContractRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolContractRevisionID sets the ID field of the mutation.
+func withQuotaPoolContractRevisionID(id int64) quotapoolcontractrevisionOption {
+	return func(m *QuotaPoolContractRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolContractRevision
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolContractRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolContractRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolContractRevision sets the old QuotaPoolContractRevision of the mutation.
+func withQuotaPoolContractRevision(node *QuotaPoolContractRevision) quotapoolcontractrevisionOption {
+	return func(m *QuotaPoolContractRevisionMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolContractRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolContractRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolContractRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolContractRevisionMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolContractRevisionMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolContractRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetRevision sets the "revision" field.
+func (m *QuotaPoolContractRevisionMutation) SetRevision(i int64) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *QuotaPoolContractRevisionMutation) Revision() (r int64, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the QuotaPoolContractRevision entity.
+// If the QuotaPoolContractRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolContractRevisionMutation) OldRevision(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *QuotaPoolContractRevisionMutation) AddRevision(i int64) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *QuotaPoolContractRevisionMutation) AddedRevision() (r int64, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *QuotaPoolContractRevisionMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// SetAllocation sets the "allocation" field.
+func (m *QuotaPoolContractRevisionMutation) SetAllocation(value map[string]interface{}) {
+	m.allocation = &value
+}
+
+// Allocation returns the value of the "allocation" field in the mutation.
+func (m *QuotaPoolContractRevisionMutation) Allocation() (r map[string]interface{}, exists bool) {
+	v := m.allocation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAllocation returns the old "allocation" field's value of the QuotaPoolContractRevision entity.
+// If the QuotaPoolContractRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolContractRevisionMutation) OldAllocation(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAllocation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAllocation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAllocation: %w", err)
+	}
+	return oldValue.Allocation, nil
+}
+
+// ResetAllocation resets all changes to the "allocation" field.
+func (m *QuotaPoolContractRevisionMutation) ResetAllocation() {
+	m.allocation = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *QuotaPoolContractRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *QuotaPoolContractRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the QuotaPoolContractRevision entity.
+// If the QuotaPoolContractRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolContractRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *QuotaPoolContractRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the QuotaPoolContractRevisionMutation builder.
+func (m *QuotaPoolContractRevisionMutation) Where(ps ...predicate.QuotaPoolContractRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolContractRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolContractRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolContractRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolContractRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolContractRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolContractRevision).
+func (m *QuotaPoolContractRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolContractRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.revision != nil {
+		fields = append(fields, quotapoolcontractrevision.FieldRevision)
+	}
+	if m.allocation != nil {
+		fields = append(fields, quotapoolcontractrevision.FieldAllocation)
+	}
+	if m.created_at != nil {
+		fields = append(fields, quotapoolcontractrevision.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolContractRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolcontractrevision.FieldRevision:
+		return m.Revision()
+	case quotapoolcontractrevision.FieldAllocation:
+		return m.Allocation()
+	case quotapoolcontractrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolContractRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolcontractrevision.FieldRevision:
+		return m.OldRevision(ctx)
+	case quotapoolcontractrevision.FieldAllocation:
+		return m.OldAllocation(ctx)
+	case quotapoolcontractrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolContractRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolContractRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolcontractrevision.FieldRevision:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case quotapoolcontractrevision.FieldAllocation:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAllocation(v)
+		return nil
+	case quotapoolcontractrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolContractRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolContractRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, quotapoolcontractrevision.FieldRevision)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolContractRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolcontractrevision.FieldRevision:
+		return m.AddedRevision()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolContractRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolcontractrevision.FieldRevision:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolContractRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolContractRevisionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolContractRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolContractRevisionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPoolContractRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolContractRevisionMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolcontractrevision.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case quotapoolcontractrevision.FieldAllocation:
+		m.ResetAllocation()
+		return nil
+	case quotapoolcontractrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolContractRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolContractRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolContractRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolContractRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolContractRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolContractRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolContractRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolContractRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolContractRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolContractRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolContractRevision edge %s", name)
+}
+
+// QuotaPoolManagedUserMutation represents an operation that mutates the QuotaPoolManagedUser nodes in the graph.
+type QuotaPoolManagedUserMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	user_id       *int64
+	adduser_id    *int64
+	managed       *bool
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*QuotaPoolManagedUser, error)
+	predicates    []predicate.QuotaPoolManagedUser
+}
+
+var _ ent.Mutation = (*QuotaPoolManagedUserMutation)(nil)
+
+// quotapoolmanageduserOption allows management of the mutation configuration using functional options.
+type quotapoolmanageduserOption func(*QuotaPoolManagedUserMutation)
+
+// newQuotaPoolManagedUserMutation creates new mutation for the QuotaPoolManagedUser entity.
+func newQuotaPoolManagedUserMutation(c config, op Op, opts ...quotapoolmanageduserOption) *QuotaPoolManagedUserMutation {
+	m := &QuotaPoolManagedUserMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolManagedUser,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolManagedUserID sets the ID field of the mutation.
+func withQuotaPoolManagedUserID(id int64) quotapoolmanageduserOption {
+	return func(m *QuotaPoolManagedUserMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolManagedUser
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolManagedUser, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolManagedUser.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolManagedUser sets the old QuotaPoolManagedUser of the mutation.
+func withQuotaPoolManagedUser(node *QuotaPoolManagedUser) quotapoolmanageduserOption {
+	return func(m *QuotaPoolManagedUserMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolManagedUser, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolManagedUserMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolManagedUserMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolManagedUserMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolManagedUserMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolManagedUser.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *QuotaPoolManagedUserMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *QuotaPoolManagedUserMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the QuotaPoolManagedUser entity.
+// If the QuotaPoolManagedUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolManagedUserMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *QuotaPoolManagedUserMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *QuotaPoolManagedUserMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *QuotaPoolManagedUserMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetManaged sets the "managed" field.
+func (m *QuotaPoolManagedUserMutation) SetManaged(b bool) {
+	m.managed = &b
+}
+
+// Managed returns the value of the "managed" field in the mutation.
+func (m *QuotaPoolManagedUserMutation) Managed() (r bool, exists bool) {
+	v := m.managed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManaged returns the old "managed" field's value of the QuotaPoolManagedUser entity.
+// If the QuotaPoolManagedUser object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolManagedUserMutation) OldManaged(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManaged is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManaged requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManaged: %w", err)
+	}
+	return oldValue.Managed, nil
+}
+
+// ResetManaged resets all changes to the "managed" field.
+func (m *QuotaPoolManagedUserMutation) ResetManaged() {
+	m.managed = nil
+}
+
+// Where appends a list predicates to the QuotaPoolManagedUserMutation builder.
+func (m *QuotaPoolManagedUserMutation) Where(ps ...predicate.QuotaPoolManagedUser) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolManagedUserMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolManagedUserMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolManagedUser, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolManagedUserMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolManagedUserMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolManagedUser).
+func (m *QuotaPoolManagedUserMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolManagedUserMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.user_id != nil {
+		fields = append(fields, quotapoolmanageduser.FieldUserID)
+	}
+	if m.managed != nil {
+		fields = append(fields, quotapoolmanageduser.FieldManaged)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolManagedUserMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolmanageduser.FieldUserID:
+		return m.UserID()
+	case quotapoolmanageduser.FieldManaged:
+		return m.Managed()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolManagedUserMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolmanageduser.FieldUserID:
+		return m.OldUserID(ctx)
+	case quotapoolmanageduser.FieldManaged:
+		return m.OldManaged(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolManagedUser field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolManagedUserMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolmanageduser.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case quotapoolmanageduser.FieldManaged:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManaged(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolManagedUser field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolManagedUserMutation) AddedFields() []string {
+	var fields []string
+	if m.adduser_id != nil {
+		fields = append(fields, quotapoolmanageduser.FieldUserID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolManagedUserMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolmanageduser.FieldUserID:
+		return m.AddedUserID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolManagedUserMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolmanageduser.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolManagedUser numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolManagedUserMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolManagedUserMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolManagedUserMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPoolManagedUser nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolManagedUserMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolmanageduser.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case quotapoolmanageduser.FieldManaged:
+		m.ResetManaged()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolManagedUser field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolManagedUserMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolManagedUserMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolManagedUserMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolManagedUserMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolManagedUserMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolManagedUserMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolManagedUserMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolManagedUser unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolManagedUserMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolManagedUser edge %s", name)
+}
+
+// QuotaPoolPredictionMutation represents an operation that mutates the QuotaPoolPrediction nodes in the graph.
+type QuotaPoolPredictionMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	account_id    *int64
+	addaccount_id *int64
+	identity      *string
+	capacity      *float64
+	addcapacity   *float64
+	observed_at   *time.Time
+	window_start  *time.Time
+	window_end    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*QuotaPoolPrediction, error)
+	predicates    []predicate.QuotaPoolPrediction
+}
+
+var _ ent.Mutation = (*QuotaPoolPredictionMutation)(nil)
+
+// quotapoolpredictionOption allows management of the mutation configuration using functional options.
+type quotapoolpredictionOption func(*QuotaPoolPredictionMutation)
+
+// newQuotaPoolPredictionMutation creates new mutation for the QuotaPoolPrediction entity.
+func newQuotaPoolPredictionMutation(c config, op Op, opts ...quotapoolpredictionOption) *QuotaPoolPredictionMutation {
+	m := &QuotaPoolPredictionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolPrediction,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolPredictionID sets the ID field of the mutation.
+func withQuotaPoolPredictionID(id int64) quotapoolpredictionOption {
+	return func(m *QuotaPoolPredictionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolPrediction
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolPrediction, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolPrediction.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolPrediction sets the old QuotaPoolPrediction of the mutation.
+func withQuotaPoolPrediction(node *QuotaPoolPrediction) quotapoolpredictionOption {
+	return func(m *QuotaPoolPredictionMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolPrediction, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolPredictionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolPredictionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolPredictionMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolPredictionMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolPrediction.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAccountID sets the "account_id" field.
+func (m *QuotaPoolPredictionMutation) SetAccountID(i int64) {
+	m.account_id = &i
+	m.addaccount_id = nil
+}
+
+// AccountID returns the value of the "account_id" field in the mutation.
+func (m *QuotaPoolPredictionMutation) AccountID() (r int64, exists bool) {
+	v := m.account_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccountID returns the old "account_id" field's value of the QuotaPoolPrediction entity.
+// If the QuotaPoolPrediction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolPredictionMutation) OldAccountID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccountID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccountID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccountID: %w", err)
+	}
+	return oldValue.AccountID, nil
+}
+
+// AddAccountID adds i to the "account_id" field.
+func (m *QuotaPoolPredictionMutation) AddAccountID(i int64) {
+	if m.addaccount_id != nil {
+		*m.addaccount_id += i
+	} else {
+		m.addaccount_id = &i
+	}
+}
+
+// AddedAccountID returns the value that was added to the "account_id" field in this mutation.
+func (m *QuotaPoolPredictionMutation) AddedAccountID() (r int64, exists bool) {
+	v := m.addaccount_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAccountID resets all changes to the "account_id" field.
+func (m *QuotaPoolPredictionMutation) ResetAccountID() {
+	m.account_id = nil
+	m.addaccount_id = nil
+}
+
+// SetIdentity sets the "identity" field.
+func (m *QuotaPoolPredictionMutation) SetIdentity(s string) {
+	m.identity = &s
+}
+
+// Identity returns the value of the "identity" field in the mutation.
+func (m *QuotaPoolPredictionMutation) Identity() (r string, exists bool) {
+	v := m.identity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentity returns the old "identity" field's value of the QuotaPoolPrediction entity.
+// If the QuotaPoolPrediction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolPredictionMutation) OldIdentity(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentity: %w", err)
+	}
+	return oldValue.Identity, nil
+}
+
+// ResetIdentity resets all changes to the "identity" field.
+func (m *QuotaPoolPredictionMutation) ResetIdentity() {
+	m.identity = nil
+}
+
+// SetCapacity sets the "capacity" field.
+func (m *QuotaPoolPredictionMutation) SetCapacity(f float64) {
+	m.capacity = &f
+	m.addcapacity = nil
+}
+
+// Capacity returns the value of the "capacity" field in the mutation.
+func (m *QuotaPoolPredictionMutation) Capacity() (r float64, exists bool) {
+	v := m.capacity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapacity returns the old "capacity" field's value of the QuotaPoolPrediction entity.
+// If the QuotaPoolPrediction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolPredictionMutation) OldCapacity(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapacity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapacity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapacity: %w", err)
+	}
+	return oldValue.Capacity, nil
+}
+
+// AddCapacity adds f to the "capacity" field.
+func (m *QuotaPoolPredictionMutation) AddCapacity(f float64) {
+	if m.addcapacity != nil {
+		*m.addcapacity += f
+	} else {
+		m.addcapacity = &f
+	}
+}
+
+// AddedCapacity returns the value that was added to the "capacity" field in this mutation.
+func (m *QuotaPoolPredictionMutation) AddedCapacity() (r float64, exists bool) {
+	v := m.addcapacity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCapacity resets all changes to the "capacity" field.
+func (m *QuotaPoolPredictionMutation) ResetCapacity() {
+	m.capacity = nil
+	m.addcapacity = nil
+}
+
+// SetObservedAt sets the "observed_at" field.
+func (m *QuotaPoolPredictionMutation) SetObservedAt(t time.Time) {
+	m.observed_at = &t
+}
+
+// ObservedAt returns the value of the "observed_at" field in the mutation.
+func (m *QuotaPoolPredictionMutation) ObservedAt() (r time.Time, exists bool) {
+	v := m.observed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObservedAt returns the old "observed_at" field's value of the QuotaPoolPrediction entity.
+// If the QuotaPoolPrediction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolPredictionMutation) OldObservedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldObservedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldObservedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObservedAt: %w", err)
+	}
+	return oldValue.ObservedAt, nil
+}
+
+// ResetObservedAt resets all changes to the "observed_at" field.
+func (m *QuotaPoolPredictionMutation) ResetObservedAt() {
+	m.observed_at = nil
+}
+
+// SetWindowStart sets the "window_start" field.
+func (m *QuotaPoolPredictionMutation) SetWindowStart(t time.Time) {
+	m.window_start = &t
+}
+
+// WindowStart returns the value of the "window_start" field in the mutation.
+func (m *QuotaPoolPredictionMutation) WindowStart() (r time.Time, exists bool) {
+	v := m.window_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWindowStart returns the old "window_start" field's value of the QuotaPoolPrediction entity.
+// If the QuotaPoolPrediction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolPredictionMutation) OldWindowStart(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWindowStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWindowStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWindowStart: %w", err)
+	}
+	return oldValue.WindowStart, nil
+}
+
+// ResetWindowStart resets all changes to the "window_start" field.
+func (m *QuotaPoolPredictionMutation) ResetWindowStart() {
+	m.window_start = nil
+}
+
+// SetWindowEnd sets the "window_end" field.
+func (m *QuotaPoolPredictionMutation) SetWindowEnd(t time.Time) {
+	m.window_end = &t
+}
+
+// WindowEnd returns the value of the "window_end" field in the mutation.
+func (m *QuotaPoolPredictionMutation) WindowEnd() (r time.Time, exists bool) {
+	v := m.window_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWindowEnd returns the old "window_end" field's value of the QuotaPoolPrediction entity.
+// If the QuotaPoolPrediction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolPredictionMutation) OldWindowEnd(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWindowEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWindowEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWindowEnd: %w", err)
+	}
+	return oldValue.WindowEnd, nil
+}
+
+// ResetWindowEnd resets all changes to the "window_end" field.
+func (m *QuotaPoolPredictionMutation) ResetWindowEnd() {
+	m.window_end = nil
+}
+
+// Where appends a list predicates to the QuotaPoolPredictionMutation builder.
+func (m *QuotaPoolPredictionMutation) Where(ps ...predicate.QuotaPoolPrediction) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolPredictionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolPredictionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolPrediction, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolPredictionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolPredictionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolPrediction).
+func (m *QuotaPoolPredictionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolPredictionMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.account_id != nil {
+		fields = append(fields, quotapoolprediction.FieldAccountID)
+	}
+	if m.identity != nil {
+		fields = append(fields, quotapoolprediction.FieldIdentity)
+	}
+	if m.capacity != nil {
+		fields = append(fields, quotapoolprediction.FieldCapacity)
+	}
+	if m.observed_at != nil {
+		fields = append(fields, quotapoolprediction.FieldObservedAt)
+	}
+	if m.window_start != nil {
+		fields = append(fields, quotapoolprediction.FieldWindowStart)
+	}
+	if m.window_end != nil {
+		fields = append(fields, quotapoolprediction.FieldWindowEnd)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolPredictionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolprediction.FieldAccountID:
+		return m.AccountID()
+	case quotapoolprediction.FieldIdentity:
+		return m.Identity()
+	case quotapoolprediction.FieldCapacity:
+		return m.Capacity()
+	case quotapoolprediction.FieldObservedAt:
+		return m.ObservedAt()
+	case quotapoolprediction.FieldWindowStart:
+		return m.WindowStart()
+	case quotapoolprediction.FieldWindowEnd:
+		return m.WindowEnd()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolPredictionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolprediction.FieldAccountID:
+		return m.OldAccountID(ctx)
+	case quotapoolprediction.FieldIdentity:
+		return m.OldIdentity(ctx)
+	case quotapoolprediction.FieldCapacity:
+		return m.OldCapacity(ctx)
+	case quotapoolprediction.FieldObservedAt:
+		return m.OldObservedAt(ctx)
+	case quotapoolprediction.FieldWindowStart:
+		return m.OldWindowStart(ctx)
+	case quotapoolprediction.FieldWindowEnd:
+		return m.OldWindowEnd(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolPrediction field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolPredictionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolprediction.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccountID(v)
+		return nil
+	case quotapoolprediction.FieldIdentity:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentity(v)
+		return nil
+	case quotapoolprediction.FieldCapacity:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapacity(v)
+		return nil
+	case quotapoolprediction.FieldObservedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObservedAt(v)
+		return nil
+	case quotapoolprediction.FieldWindowStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWindowStart(v)
+		return nil
+	case quotapoolprediction.FieldWindowEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWindowEnd(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolPrediction field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolPredictionMutation) AddedFields() []string {
+	var fields []string
+	if m.addaccount_id != nil {
+		fields = append(fields, quotapoolprediction.FieldAccountID)
+	}
+	if m.addcapacity != nil {
+		fields = append(fields, quotapoolprediction.FieldCapacity)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolPredictionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolprediction.FieldAccountID:
+		return m.AddedAccountID()
+	case quotapoolprediction.FieldCapacity:
+		return m.AddedCapacity()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolPredictionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolprediction.FieldAccountID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAccountID(v)
+		return nil
+	case quotapoolprediction.FieldCapacity:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCapacity(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolPrediction numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolPredictionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolPredictionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolPredictionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPoolPrediction nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolPredictionMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolprediction.FieldAccountID:
+		m.ResetAccountID()
+		return nil
+	case quotapoolprediction.FieldIdentity:
+		m.ResetIdentity()
+		return nil
+	case quotapoolprediction.FieldCapacity:
+		m.ResetCapacity()
+		return nil
+	case quotapoolprediction.FieldObservedAt:
+		m.ResetObservedAt()
+		return nil
+	case quotapoolprediction.FieldWindowStart:
+		m.ResetWindowStart()
+		return nil
+	case quotapoolprediction.FieldWindowEnd:
+		m.ResetWindowEnd()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolPrediction field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolPredictionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolPredictionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolPredictionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolPredictionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolPredictionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolPredictionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolPredictionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolPrediction unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolPredictionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolPrediction edge %s", name)
+}
+
+// QuotaPoolShareMutation represents an operation that mutates the QuotaPoolShare nodes in the graph.
+type QuotaPoolShareMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int64
+	pool_id          *int64
+	addpool_id       *int64
+	user_id          *int64
+	adduser_id       *int64
+	share_percent    *float64
+	addshare_percent *float64
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*QuotaPoolShare, error)
+	predicates       []predicate.QuotaPoolShare
+}
+
+var _ ent.Mutation = (*QuotaPoolShareMutation)(nil)
+
+// quotapoolshareOption allows management of the mutation configuration using functional options.
+type quotapoolshareOption func(*QuotaPoolShareMutation)
+
+// newQuotaPoolShareMutation creates new mutation for the QuotaPoolShare entity.
+func newQuotaPoolShareMutation(c config, op Op, opts ...quotapoolshareOption) *QuotaPoolShareMutation {
+	m := &QuotaPoolShareMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolShare,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolShareID sets the ID field of the mutation.
+func withQuotaPoolShareID(id int64) quotapoolshareOption {
+	return func(m *QuotaPoolShareMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolShare
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolShare, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolShare.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolShare sets the old QuotaPoolShare of the mutation.
+func withQuotaPoolShare(node *QuotaPoolShare) quotapoolshareOption {
+	return func(m *QuotaPoolShareMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolShare, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolShareMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolShareMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolShareMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolShareMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolShare.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetPoolID sets the "pool_id" field.
+func (m *QuotaPoolShareMutation) SetPoolID(i int64) {
+	m.pool_id = &i
+	m.addpool_id = nil
+}
+
+// PoolID returns the value of the "pool_id" field in the mutation.
+func (m *QuotaPoolShareMutation) PoolID() (r int64, exists bool) {
+	v := m.pool_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPoolID returns the old "pool_id" field's value of the QuotaPoolShare entity.
+// If the QuotaPoolShare object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolShareMutation) OldPoolID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPoolID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPoolID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPoolID: %w", err)
+	}
+	return oldValue.PoolID, nil
+}
+
+// AddPoolID adds i to the "pool_id" field.
+func (m *QuotaPoolShareMutation) AddPoolID(i int64) {
+	if m.addpool_id != nil {
+		*m.addpool_id += i
+	} else {
+		m.addpool_id = &i
+	}
+}
+
+// AddedPoolID returns the value that was added to the "pool_id" field in this mutation.
+func (m *QuotaPoolShareMutation) AddedPoolID() (r int64, exists bool) {
+	v := m.addpool_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPoolID resets all changes to the "pool_id" field.
+func (m *QuotaPoolShareMutation) ResetPoolID() {
+	m.pool_id = nil
+	m.addpool_id = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *QuotaPoolShareMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *QuotaPoolShareMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the QuotaPoolShare entity.
+// If the QuotaPoolShare object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolShareMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *QuotaPoolShareMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *QuotaPoolShareMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *QuotaPoolShareMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetSharePercent sets the "share_percent" field.
+func (m *QuotaPoolShareMutation) SetSharePercent(f float64) {
+	m.share_percent = &f
+	m.addshare_percent = nil
+}
+
+// SharePercent returns the value of the "share_percent" field in the mutation.
+func (m *QuotaPoolShareMutation) SharePercent() (r float64, exists bool) {
+	v := m.share_percent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSharePercent returns the old "share_percent" field's value of the QuotaPoolShare entity.
+// If the QuotaPoolShare object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolShareMutation) OldSharePercent(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSharePercent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSharePercent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSharePercent: %w", err)
+	}
+	return oldValue.SharePercent, nil
+}
+
+// AddSharePercent adds f to the "share_percent" field.
+func (m *QuotaPoolShareMutation) AddSharePercent(f float64) {
+	if m.addshare_percent != nil {
+		*m.addshare_percent += f
+	} else {
+		m.addshare_percent = &f
+	}
+}
+
+// AddedSharePercent returns the value that was added to the "share_percent" field in this mutation.
+func (m *QuotaPoolShareMutation) AddedSharePercent() (r float64, exists bool) {
+	v := m.addshare_percent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSharePercent resets all changes to the "share_percent" field.
+func (m *QuotaPoolShareMutation) ResetSharePercent() {
+	m.share_percent = nil
+	m.addshare_percent = nil
+}
+
+// Where appends a list predicates to the QuotaPoolShareMutation builder.
+func (m *QuotaPoolShareMutation) Where(ps ...predicate.QuotaPoolShare) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolShareMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolShareMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolShare, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolShareMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolShareMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolShare).
+func (m *QuotaPoolShareMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolShareMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.pool_id != nil {
+		fields = append(fields, quotapoolshare.FieldPoolID)
+	}
+	if m.user_id != nil {
+		fields = append(fields, quotapoolshare.FieldUserID)
+	}
+	if m.share_percent != nil {
+		fields = append(fields, quotapoolshare.FieldSharePercent)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolShareMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolshare.FieldPoolID:
+		return m.PoolID()
+	case quotapoolshare.FieldUserID:
+		return m.UserID()
+	case quotapoolshare.FieldSharePercent:
+		return m.SharePercent()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolShareMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolshare.FieldPoolID:
+		return m.OldPoolID(ctx)
+	case quotapoolshare.FieldUserID:
+		return m.OldUserID(ctx)
+	case quotapoolshare.FieldSharePercent:
+		return m.OldSharePercent(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolShare field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolShareMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolshare.FieldPoolID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPoolID(v)
+		return nil
+	case quotapoolshare.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case quotapoolshare.FieldSharePercent:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSharePercent(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolShare field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolShareMutation) AddedFields() []string {
+	var fields []string
+	if m.addpool_id != nil {
+		fields = append(fields, quotapoolshare.FieldPoolID)
+	}
+	if m.adduser_id != nil {
+		fields = append(fields, quotapoolshare.FieldUserID)
+	}
+	if m.addshare_percent != nil {
+		fields = append(fields, quotapoolshare.FieldSharePercent)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolShareMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolshare.FieldPoolID:
+		return m.AddedPoolID()
+	case quotapoolshare.FieldUserID:
+		return m.AddedUserID()
+	case quotapoolshare.FieldSharePercent:
+		return m.AddedSharePercent()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolShareMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolshare.FieldPoolID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPoolID(v)
+		return nil
+	case quotapoolshare.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case quotapoolshare.FieldSharePercent:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSharePercent(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolShare numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolShareMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolShareMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolShareMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPoolShare nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolShareMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolshare.FieldPoolID:
+		m.ResetPoolID()
+		return nil
+	case quotapoolshare.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case quotapoolshare.FieldSharePercent:
+		m.ResetSharePercent()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolShare field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolShareMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolShareMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolShareMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolShareMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolShareMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolShareMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolShareMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolShare unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolShareMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolShare edge %s", name)
+}
+
+// QuotaPoolSyncRunMutation represents an operation that mutates the QuotaPoolSyncRun nodes in the graph.
+type QuotaPoolSyncRunMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	operation_key *string
+	source        *string
+	status        *string
+	result        *map[string]interface{}
+	created_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*QuotaPoolSyncRun, error)
+	predicates    []predicate.QuotaPoolSyncRun
+}
+
+var _ ent.Mutation = (*QuotaPoolSyncRunMutation)(nil)
+
+// quotapoolsyncrunOption allows management of the mutation configuration using functional options.
+type quotapoolsyncrunOption func(*QuotaPoolSyncRunMutation)
+
+// newQuotaPoolSyncRunMutation creates new mutation for the QuotaPoolSyncRun entity.
+func newQuotaPoolSyncRunMutation(c config, op Op, opts ...quotapoolsyncrunOption) *QuotaPoolSyncRunMutation {
+	m := &QuotaPoolSyncRunMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeQuotaPoolSyncRun,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withQuotaPoolSyncRunID sets the ID field of the mutation.
+func withQuotaPoolSyncRunID(id int64) quotapoolsyncrunOption {
+	return func(m *QuotaPoolSyncRunMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *QuotaPoolSyncRun
+		)
+		m.oldValue = func(ctx context.Context) (*QuotaPoolSyncRun, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().QuotaPoolSyncRun.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withQuotaPoolSyncRun sets the old QuotaPoolSyncRun of the mutation.
+func withQuotaPoolSyncRun(node *QuotaPoolSyncRun) quotapoolsyncrunOption {
+	return func(m *QuotaPoolSyncRunMutation) {
+		m.oldValue = func(context.Context) (*QuotaPoolSyncRun, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m QuotaPoolSyncRunMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m QuotaPoolSyncRunMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *QuotaPoolSyncRunMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *QuotaPoolSyncRunMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().QuotaPoolSyncRun.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOperationKey sets the "operation_key" field.
+func (m *QuotaPoolSyncRunMutation) SetOperationKey(s string) {
+	m.operation_key = &s
+}
+
+// OperationKey returns the value of the "operation_key" field in the mutation.
+func (m *QuotaPoolSyncRunMutation) OperationKey() (r string, exists bool) {
+	v := m.operation_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperationKey returns the old "operation_key" field's value of the QuotaPoolSyncRun entity.
+// If the QuotaPoolSyncRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolSyncRunMutation) OldOperationKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperationKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperationKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperationKey: %w", err)
+	}
+	return oldValue.OperationKey, nil
+}
+
+// ResetOperationKey resets all changes to the "operation_key" field.
+func (m *QuotaPoolSyncRunMutation) ResetOperationKey() {
+	m.operation_key = nil
+}
+
+// SetSource sets the "source" field.
+func (m *QuotaPoolSyncRunMutation) SetSource(s string) {
+	m.source = &s
+}
+
+// Source returns the value of the "source" field in the mutation.
+func (m *QuotaPoolSyncRunMutation) Source() (r string, exists bool) {
+	v := m.source
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSource returns the old "source" field's value of the QuotaPoolSyncRun entity.
+// If the QuotaPoolSyncRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolSyncRunMutation) OldSource(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSource: %w", err)
+	}
+	return oldValue.Source, nil
+}
+
+// ResetSource resets all changes to the "source" field.
+func (m *QuotaPoolSyncRunMutation) ResetSource() {
+	m.source = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *QuotaPoolSyncRunMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *QuotaPoolSyncRunMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the QuotaPoolSyncRun entity.
+// If the QuotaPoolSyncRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolSyncRunMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *QuotaPoolSyncRunMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetResult sets the "result" field.
+func (m *QuotaPoolSyncRunMutation) SetResult(value map[string]interface{}) {
+	m.result = &value
+}
+
+// Result returns the value of the "result" field in the mutation.
+func (m *QuotaPoolSyncRunMutation) Result() (r map[string]interface{}, exists bool) {
+	v := m.result
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResult returns the old "result" field's value of the QuotaPoolSyncRun entity.
+// If the QuotaPoolSyncRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolSyncRunMutation) OldResult(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResult is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResult requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResult: %w", err)
+	}
+	return oldValue.Result, nil
+}
+
+// ResetResult resets all changes to the "result" field.
+func (m *QuotaPoolSyncRunMutation) ResetResult() {
+	m.result = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *QuotaPoolSyncRunMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *QuotaPoolSyncRunMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the QuotaPoolSyncRun entity.
+// If the QuotaPoolSyncRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *QuotaPoolSyncRunMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *QuotaPoolSyncRunMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the QuotaPoolSyncRunMutation builder.
+func (m *QuotaPoolSyncRunMutation) Where(ps ...predicate.QuotaPoolSyncRun) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the QuotaPoolSyncRunMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *QuotaPoolSyncRunMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.QuotaPoolSyncRun, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *QuotaPoolSyncRunMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *QuotaPoolSyncRunMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (QuotaPoolSyncRun).
+func (m *QuotaPoolSyncRunMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *QuotaPoolSyncRunMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.operation_key != nil {
+		fields = append(fields, quotapoolsyncrun.FieldOperationKey)
+	}
+	if m.source != nil {
+		fields = append(fields, quotapoolsyncrun.FieldSource)
+	}
+	if m.status != nil {
+		fields = append(fields, quotapoolsyncrun.FieldStatus)
+	}
+	if m.result != nil {
+		fields = append(fields, quotapoolsyncrun.FieldResult)
+	}
+	if m.created_at != nil {
+		fields = append(fields, quotapoolsyncrun.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *QuotaPoolSyncRunMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case quotapoolsyncrun.FieldOperationKey:
+		return m.OperationKey()
+	case quotapoolsyncrun.FieldSource:
+		return m.Source()
+	case quotapoolsyncrun.FieldStatus:
+		return m.Status()
+	case quotapoolsyncrun.FieldResult:
+		return m.Result()
+	case quotapoolsyncrun.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *QuotaPoolSyncRunMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case quotapoolsyncrun.FieldOperationKey:
+		return m.OldOperationKey(ctx)
+	case quotapoolsyncrun.FieldSource:
+		return m.OldSource(ctx)
+	case quotapoolsyncrun.FieldStatus:
+		return m.OldStatus(ctx)
+	case quotapoolsyncrun.FieldResult:
+		return m.OldResult(ctx)
+	case quotapoolsyncrun.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown QuotaPoolSyncRun field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolSyncRunMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case quotapoolsyncrun.FieldOperationKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperationKey(v)
+		return nil
+	case quotapoolsyncrun.FieldSource:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSource(v)
+		return nil
+	case quotapoolsyncrun.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case quotapoolsyncrun.FieldResult:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResult(v)
+		return nil
+	case quotapoolsyncrun.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolSyncRun field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *QuotaPoolSyncRunMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *QuotaPoolSyncRunMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *QuotaPoolSyncRunMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown QuotaPoolSyncRun numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *QuotaPoolSyncRunMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *QuotaPoolSyncRunMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *QuotaPoolSyncRunMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown QuotaPoolSyncRun nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *QuotaPoolSyncRunMutation) ResetField(name string) error {
+	switch name {
+	case quotapoolsyncrun.FieldOperationKey:
+		m.ResetOperationKey()
+		return nil
+	case quotapoolsyncrun.FieldSource:
+		m.ResetSource()
+		return nil
+	case quotapoolsyncrun.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case quotapoolsyncrun.FieldResult:
+		m.ResetResult()
+		return nil
+	case quotapoolsyncrun.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown QuotaPoolSyncRun field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *QuotaPoolSyncRunMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *QuotaPoolSyncRunMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *QuotaPoolSyncRunMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *QuotaPoolSyncRunMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *QuotaPoolSyncRunMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *QuotaPoolSyncRunMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *QuotaPoolSyncRunMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolSyncRun unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *QuotaPoolSyncRunMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown QuotaPoolSyncRun edge %s", name)
 }
 
 // RedeemCodeMutation represents an operation that mutates the RedeemCode nodes in the graph.

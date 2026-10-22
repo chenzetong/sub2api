@@ -49,16 +49,33 @@ func (r *usageBillingRepository) Apply(ctx context.Context, cmd *service.UsageBi
 	if !applied {
 		return &service.UsageBillingApplyResult{Applied: false}, nil
 	}
+	if cmd.AtomicUsageLog != nil {
+		// Also serialize subscription/zero-price usage with pool settlement,
+		// even when this request has no balance debit to acquire the user lock.
+		var userID int64
+		if err := tx.QueryRowContext(ctx, "SELECT id FROM users WHERE id=$1 AND deleted_at IS NULL FOR UPDATE", cmd.UserID).Scan(&userID); err != nil {
+			return nil, err
+		}
+	}
 
 	result := &service.UsageBillingApplyResult{Applied: true}
 	if err := r.applyUsageBillingEffects(ctx, tx, cmd, result); err != nil {
 		return nil, err
+	}
+	if cmd.AtomicUsageLog != nil {
+		writer := &usageLogRepository{}
+		if _, err := writer.createSingle(ctx, tx, cmd.AtomicUsageLog); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	tx = nil
+	if cmd.AtomicUsageLog != nil {
+		cmd.AtomicUsageLog.PersistedWithBilling = true
+	}
 	return result, nil
 }
 

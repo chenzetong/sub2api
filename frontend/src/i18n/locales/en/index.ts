@@ -1,3 +1,4 @@
+import quotaPools from './quotaPools'
 import landing from './landing'
 import common from './common'
 import dashboard from './dashboard'
@@ -8,6 +9,7 @@ import misc from './misc'
 import myResources from './myResources'
 
 export default {
+  quotaPools,
   ...landing,
   ...common,
   ...dashboard,

@@ -1538,6 +1538,120 @@ var (
 			},
 		},
 	}
+	// QuotaPoolsColumns holds the columns for the "quota_pools" table.
+	QuotaPoolsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 160},
+		{Name: "revision", Type: field.TypeInt64, Default: 1},
+	}
+	// QuotaPoolsTable holds the schema information for the "quota_pools" table.
+	QuotaPoolsTable = &schema.Table{
+		Name:       "quota_pools",
+		Columns:    QuotaPoolsColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolsColumns[0]},
+	}
+	// QuotaPoolAccountsColumns holds the columns for the "quota_pool_accounts" table.
+	QuotaPoolAccountsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "pool_id", Type: field.TypeInt64},
+		{Name: "account_id", Type: field.TypeInt64, Unique: true},
+	}
+	// QuotaPoolAccountsTable holds the schema information for the "quota_pool_accounts" table.
+	QuotaPoolAccountsTable = &schema.Table{
+		Name:       "quota_pool_accounts",
+		Columns:    QuotaPoolAccountsColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolAccountsColumns[0]},
+	}
+	// QuotaPoolConfigColumns holds the columns for the "quota_pool_config" table.
+	QuotaPoolConfigColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "revision", Type: field.TypeInt64, Default: 1},
+		{Name: "enabled", Type: field.TypeBool, Default: false},
+		{Name: "interval_minutes", Type: field.TypeInt, Default: 5},
+		{Name: "next_run_at", Type: field.TypeTime, Nullable: true},
+	}
+	// QuotaPoolConfigTable holds the schema information for the "quota_pool_config" table.
+	QuotaPoolConfigTable = &schema.Table{
+		Name:       "quota_pool_config",
+		Columns:    QuotaPoolConfigColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolConfigColumns[0]},
+	}
+	// QuotaPoolContractRevisionsColumns holds the columns for the "quota_pool_contract_revisions" table.
+	QuotaPoolContractRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "revision", Type: field.TypeInt64, Unique: true},
+		{Name: "allocation", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// QuotaPoolContractRevisionsTable holds the schema information for the "quota_pool_contract_revisions" table.
+	QuotaPoolContractRevisionsTable = &schema.Table{
+		Name:       "quota_pool_contract_revisions",
+		Columns:    QuotaPoolContractRevisionsColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolContractRevisionsColumns[0]},
+	}
+	// QuotaPoolManagedUsersColumns holds the columns for the "quota_pool_managed_users" table.
+	QuotaPoolManagedUsersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64, Unique: true},
+		{Name: "managed", Type: field.TypeBool, Default: true},
+	}
+	// QuotaPoolManagedUsersTable holds the schema information for the "quota_pool_managed_users" table.
+	QuotaPoolManagedUsersTable = &schema.Table{
+		Name:       "quota_pool_managed_users",
+		Columns:    QuotaPoolManagedUsersColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolManagedUsersColumns[0]},
+	}
+	// QuotaPoolPredictionsColumns holds the columns for the "quota_pool_predictions" table.
+	QuotaPoolPredictionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "account_id", Type: field.TypeInt64, Unique: true},
+		{Name: "identity", Type: field.TypeString, Size: 64},
+		{Name: "capacity", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric(20,8)"}},
+		{Name: "observed_at", Type: field.TypeTime},
+		{Name: "window_start", Type: field.TypeTime},
+		{Name: "window_end", Type: field.TypeTime},
+	}
+	// QuotaPoolPredictionsTable holds the schema information for the "quota_pool_predictions" table.
+	QuotaPoolPredictionsTable = &schema.Table{
+		Name:       "quota_pool_predictions",
+		Columns:    QuotaPoolPredictionsColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolPredictionsColumns[0]},
+	}
+	// QuotaPoolSharesColumns holds the columns for the "quota_pool_shares" table.
+	QuotaPoolSharesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "pool_id", Type: field.TypeInt64},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "share_percent", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric(6,3)"}},
+	}
+	// QuotaPoolSharesTable holds the schema information for the "quota_pool_shares" table.
+	QuotaPoolSharesTable = &schema.Table{
+		Name:       "quota_pool_shares",
+		Columns:    QuotaPoolSharesColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolSharesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "quotapoolshare_pool_id_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{QuotaPoolSharesColumns[1], QuotaPoolSharesColumns[2]},
+			},
+		},
+	}
+	// QuotaPoolSyncRunsColumns holds the columns for the "quota_pool_sync_runs" table.
+	QuotaPoolSyncRunsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "operation_key", Type: field.TypeString, Unique: true, Size: 160},
+		{Name: "source", Type: field.TypeString, Size: 20},
+		{Name: "status", Type: field.TypeString, Size: 32},
+		{Name: "result", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// QuotaPoolSyncRunsTable holds the schema information for the "quota_pool_sync_runs" table.
+	QuotaPoolSyncRunsTable = &schema.Table{
+		Name:       "quota_pool_sync_runs",
+		Columns:    QuotaPoolSyncRunsColumns,
+		PrimaryKey: []*schema.Column{QuotaPoolSyncRunsColumns[0]},
+	}
 	// RedeemCodesColumns holds the columns for the "redeem_codes" table.
 	RedeemCodesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2292,6 +2406,14 @@ var (
 		PromoCodeUsagesTable,
 		ProxiesTable,
 		ProxySourcesTable,
+		QuotaPoolsTable,
+		QuotaPoolAccountsTable,
+		QuotaPoolConfigTable,
+		QuotaPoolContractRevisionsTable,
+		QuotaPoolManagedUsersTable,
+		QuotaPoolPredictionsTable,
+		QuotaPoolSharesTable,
+		QuotaPoolSyncRunsTable,
 		RedeemCodesTable,
 		RedeemCodeUsagesTable,
 		SecuritySecretsTable,
@@ -2411,6 +2533,30 @@ func init() {
 	}
 	ProxySourcesTable.Annotation = &entsql.Annotation{
 		Table: "proxy_sources",
+	}
+	QuotaPoolsTable.Annotation = &entsql.Annotation{
+		Table: "quota_pools",
+	}
+	QuotaPoolAccountsTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_accounts",
+	}
+	QuotaPoolConfigTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_config",
+	}
+	QuotaPoolContractRevisionsTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_contract_revisions",
+	}
+	QuotaPoolManagedUsersTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_managed_users",
+	}
+	QuotaPoolPredictionsTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_predictions",
+	}
+	QuotaPoolSharesTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_shares",
+	}
+	QuotaPoolSyncRunsTable.Annotation = &entsql.Annotation{
+		Table: "quota_pool_sync_runs",
 	}
 	RedeemCodesTable.ForeignKeys[0].RefTable = GroupsTable
 	RedeemCodesTable.ForeignKeys[1].RefTable = UsersTable

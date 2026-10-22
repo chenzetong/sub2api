@@ -299,6 +299,9 @@ func buildUsageBillingCommand(requestID string, usageLog *UsageLog, p *postUsage
 		AccountType:        p.Account.Type,
 		RequestPayloadHash: strings.TrimSpace(p.RequestPayloadHash),
 	}
+	if p.Account.IsOpenAIOAuth() && p.Account.OwnerUserID == nil && !p.SimpleModeKeyRateLimitOnly {
+		cmd.AtomicUsageLog = usageLog
+	}
 	if usageLog != nil {
 		cmd.Model = usageLog.Model
 		cmd.BillingType = usageLog.BillingType
@@ -370,6 +373,11 @@ func applyUsageBilling(ctx context.Context, requestID string, usageLog *UsageLog
 	billingCtx, cancel := detachedBillingContext(ctx)
 	defer cancel()
 
+	if cmd.AtomicUsageLog != nil {
+		// Neither a rollback nor a deduplicated retry may enqueue an independent
+		// usage insert after the billing transaction has decided the outcome.
+		cmd.AtomicUsageLog.AtomicBilling = true
+	}
 	result, err := repo.Apply(billingCtx, cmd)
 	if err != nil {
 		return false, err
@@ -614,6 +622,9 @@ func (s *GatewayService) billingDeps() *billingDeps {
 }
 
 func writeUsageLogBestEffort(ctx context.Context, repo UsageLogRepository, usageLog *UsageLog, logKey string) {
+	if usageLog != nil && (usageLog.AtomicBilling || usageLog.PersistedWithBilling) {
+		return
+	}
 	if repo == nil || usageLog == nil {
 		return
 	}

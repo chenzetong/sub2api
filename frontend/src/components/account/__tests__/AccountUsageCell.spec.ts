@@ -608,8 +608,9 @@ describe('AccountUsageCell', () => {
     expect(wrapper.text()).toContain('7d|36|900')
   })
 
-  it('仅为 OpenAI OAuth 7d 窗口计算预计总费用', async () => {
+  it('展示后端返回的 OpenAI OAuth 7d 预测总费用', async () => {
     getUsage.mockResolvedValue({
+      seven_day_estimate: { total_cost: 30, source: 'current' },
       five_hour: {
         utilization: 25,
         resets_at: null,

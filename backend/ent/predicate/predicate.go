@@ -87,6 +87,30 @@ type Proxy func(*sql.Selector)
 // ProxySource is the predicate function for proxysource builders.
 type ProxySource func(*sql.Selector)
 
+// QuotaPool is the predicate function for quotapool builders.
+type QuotaPool func(*sql.Selector)
+
+// QuotaPoolAccount is the predicate function for quotapoolaccount builders.
+type QuotaPoolAccount func(*sql.Selector)
+
+// QuotaPoolConfig is the predicate function for quotapoolconfig builders.
+type QuotaPoolConfig func(*sql.Selector)
+
+// QuotaPoolContractRevision is the predicate function for quotapoolcontractrevision builders.
+type QuotaPoolContractRevision func(*sql.Selector)
+
+// QuotaPoolManagedUser is the predicate function for quotapoolmanageduser builders.
+type QuotaPoolManagedUser func(*sql.Selector)
+
+// QuotaPoolPrediction is the predicate function for quotapoolprediction builders.
+type QuotaPoolPrediction func(*sql.Selector)
+
+// QuotaPoolShare is the predicate function for quotapoolshare builders.
+type QuotaPoolShare func(*sql.Selector)
+
+// QuotaPoolSyncRun is the predicate function for quotapoolsyncrun builders.
+type QuotaPoolSyncRun func(*sql.Selector)
+
 // RedeemCode is the predicate function for redeemcode builders.
 type RedeemCode func(*sql.Selector)
 
