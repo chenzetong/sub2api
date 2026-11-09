@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/stretchr/testify/require"
 )
@@ -70,4 +71,34 @@ func TestCreateWithAccountGroupsPersistsPausedCopyAtomically(t *testing.T) {
 	require.Zero(t, accountCount)
 	require.Zero(t, groupCount)
 	require.Zero(t, failedOutboxCount)
+}
+
+func TestCreateWithAccountGroupsUsesCallerTransaction(t *testing.T) {
+	ctx := context.Background()
+	client := testEntClient(t)
+	repo := newAccountRepositoryWithSQL(client, integrationDB, nil)
+	tx, err := client.Tx(ctx)
+	require.NoError(t, err)
+	defer func() { _ = tx.Rollback() }()
+	group, err := tx.Client().Group.Create().SetName(fmt.Sprintf("caller-tx-%d", time.Now().UnixNano())).Save(ctx)
+	require.NoError(t, err)
+	account := &service.Account{
+		Name: "caller-transaction-account", Platform: service.PlatformAnthropic,
+		Type: service.AccountTypeAPIKey, Status: service.StatusActive,
+		Credentials: map[string]any{"api_key": "test"}, Extra: map[string]any{},
+	}
+	// A group created in the caller's transaction is invisible to a separate transaction.
+	require.NoError(t, repo.CreateWithAccountGroups(dbent.NewTxContext(ctx, tx), account, []service.AccountGroup{{GroupID: group.ID, Priority: 1}}))
+	_, err = tx.Client().Account.Get(ctx, account.ID)
+	require.NoError(t, err)
+	require.NoError(t, tx.Rollback())
+	for _, table := range []string{"accounts", "account_groups", "scheduler_outbox"} {
+		column := "account_id"
+		if table == "accounts" {
+			column = "id"
+		}
+		var count int
+		require.NoError(t, integrationDB.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+table+" WHERE "+column+" = $1", account.ID).Scan(&count))
+		require.Zero(t, count, table)
+	}
 }

@@ -5,6 +5,22 @@ export default {
     'Allocate account forecasts by contract shares. Saved contracts apply to current windows; balance synchronization is separate.',
   readOnlyDescription:
     'Read-only access to accounts, usage and statistics in pools where you hold a positive share.',
+  poolCount: 'Pools',
+  assignedAccounts: 'Assigned accounts',
+  participants: 'Participants',
+  allocation: 'Quotas and contracts',
+  workflowHint: 'Choose accounts → Allocate shares → Save and preview balances',
+  selectedCount: '{count} selected',
+  searchAccounts: 'Search source accounts',
+  selectAccount: 'Select source account {name}',
+  assignedElsewhere: 'Assigned to another pool',
+  estimatedQuota: 'Estimated quota',
+  noSourceAccounts: 'No source accounts available.',
+  selectAccountHint: 'Select at least one source account.',
+  splitHint: 'Select accounts below, then choose “Split selected accounts”.',
+  overAllocated: 'Total contract shares cannot exceed 100%.',
+  unallocated: '{percent}% unallocated',
+  noShares: 'Add participants and set their contract shares.',
   pool: 'Pool',
   poolName: 'Pool name',
   schedule: 'Scheduled balance synchronization',
@@ -70,6 +86,12 @@ export default {
     invalid_prediction: 'Invalid forecast',
     missing_account: 'Source account unavailable',
     incomplete_prediction: 'Incomplete source forecasts; entire balance skipped'
+  },
+  accountStates: {
+    disabled: 'Disabled',
+    active: 'Active',
+    inactive: 'Inactive',
+    error: 'Error'
   },
   states: {
     preview: 'Preview',

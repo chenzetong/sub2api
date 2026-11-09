@@ -1,4 +1,6 @@
 import quotaPools from './quotaPools'
+import adminAccessKeys from './adminAccessKeys'
+import mcp from './mcp'
 import landing from './landing'
 import common from './common'
 import dashboard from './dashboard'
@@ -10,6 +12,8 @@ import myResources from './myResources'
 
 export default {
   quotaPools,
+  adminAccessKeys,
+  mcp,
   ...landing,
   ...common,
   ...dashboard,

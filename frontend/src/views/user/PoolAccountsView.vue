@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import Icon from '@/components/icons/Icon.vue'
 import OpenAIUsageWindows from '@/components/account/OpenAIUsageWindows.vue'
 import AccountStatsModal from '@/components/admin/account/AccountStatsModal.vue'
 import { poolAccountsAPI, type PoolAccount } from '@/api/quotaPools'
@@ -36,27 +37,32 @@ onMounted(load)
 
 <template>
   <AppLayout>
-    <div class="space-y-5 p-4 md:p-6">
+    <div
+      class="mx-auto max-w-7xl space-y-6 p-4 text-gray-900 dark:text-gray-100 md:p-6"
+    >
       <div>
-        <h1 class="text-xl font-semibold">
+        <h1 class="text-2xl font-semibold tracking-tight">
           {{ t('quotaPools.accountsTitle') }}
         </h1>
-        <p class="mt-1 text-sm text-gray-500">
+        <p class="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
           {{ t('quotaPools.readOnlyDescription') }}
         </p>
       </div>
-      <label class="block max-w-md"
+      <label class="relative block max-w-md"
         ><span class="sr-only">{{ t('quotaPools.search') }}</span
-        ><input
+        ><Icon
+          name="search"
+          size="sm"
+          class="pointer-events-none absolute left-3 top-3 text-gray-400" /><input
           v-model="search"
-          class="input w-full"
+          class="input w-full pl-9"
           :placeholder="t('quotaPools.search')"
       /></label>
       <p v-if="loading" role="status">{{ t('common.loading') }}</p>
       <div
         v-else-if="error"
         role="alert"
-        class="rounded-lg bg-red-50 p-4 text-red-700"
+        class="rounded-xl bg-red-50 p-4 text-red-700 dark:bg-red-950/30 dark:text-red-300"
       >
         {{ error }}
         <button class="btn btn-secondary ml-3" @click="load">
@@ -75,29 +81,49 @@ onMounted(load)
         <article
           v-for="account in filtered"
           :key="account.id"
-          class="card space-y-4 p-5"
+          class="card overflow-hidden"
         >
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 class="font-semibold">{{ account.name }}</h2>
-              <p class="text-sm text-gray-500">
-                {{ account.pool_name }} · {{ account.share_percent }}% · OpenAI
-                OAuth
+          <div
+            class="flex items-start justify-between gap-3 border-b border-gray-100 p-5 dark:border-dark-700"
+          >
+            <div class="min-w-0">
+              <h2 class="break-words font-semibold">{{ account.name }}</h2>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ account.pool_name }} · OpenAI OAuth
               </p>
             </div>
             <span
-              class="rounded bg-gray-100 px-2 py-1 text-xs dark:bg-gray-800"
-              >{{ account.status }}</span
+              class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
+              :class="
+                account.status === 'active'
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
+                  : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-300'
+              "
+              >{{ t(`quotaPools.accountStates.${account.status}`) }}</span
             >
           </div>
-          <OpenAIUsageWindows
-            :five-hour="account.five_hour"
-            :seven-day="account.seven_day"
-            :estimate="account.estimate"
-          />
-          <button class="btn btn-secondary" @click="selected = account">
-            {{ t('quotaPools.details') }}
-          </button>
+          <div class="space-y-4 p-5">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500 dark:text-gray-400">{{
+                t('quotaPools.shares')
+              }}</span
+              ><span
+                class="font-semibold tabular-nums text-primary-600 dark:text-primary-400"
+                >{{ account.share_percent }}%</span
+              >
+            </div>
+            <OpenAIUsageWindows
+              :five-hour="account.five_hour"
+              :seven-day="account.seven_day"
+              :estimate="account.estimate"
+            />
+            <button
+              class="btn btn-secondary w-full"
+              @click="selected = account"
+            >
+              {{ t('quotaPools.details') }}
+            </button>
+          </div>
         </article>
       </div>
       <AccountStatsModal

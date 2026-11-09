@@ -69,6 +69,7 @@ export interface UserOAuthCredentialsResult {
 
 export interface SyncUpstreamModelsResult {
   models: string[]
+  discovery_source?: 'upstream' | 'configured_fallback'
   metadata?: Record<string, Record<string, unknown>>
   warnings?: Array<{ code: string; message: string }>
 }

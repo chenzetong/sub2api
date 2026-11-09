@@ -119,6 +119,46 @@ describe('QuotaPoolsView', () => {
       ])
     )
   })
+  it('filters source accounts without losing selections and prevents cross-pool assignment', async () => {
+    const wrapper = render()
+    await flushPromises()
+    const picker = wrapper.findAll('[role="group"]')[0]!
+    const checkboxes = picker.findAll('input[type="checkbox"]')
+    expect(checkboxes[2]!.attributes('disabled')).toBeDefined()
+    await checkboxes[1]!.setValue(false)
+    await wrapper.findAll('input[type="search"]')[0]!.setValue('Account 1')
+    expect(picker.findAll('input')).toHaveLength(1)
+    expect((picker.get('input').element as HTMLInputElement).checked).toBe(true)
+    await button(wrapper, 'quotaPools.saveAllocation').trigger('click')
+    await flushPromises()
+    expect(api.save).toHaveBeenCalledWith(
+      1,
+      expect.arrayContaining([
+        expect.objectContaining({ id: 1, account_ids: [1] }),
+        expect.objectContaining({ id: 2, account_ids: [3] })
+      ])
+    )
+  })
+  it('removes split selections when a source account is deselected', async () => {
+    const wrapper = render()
+    await flushPromises()
+    await wrapper
+      .get('input[type="checkbox"][value="1"]:not([aria-label])')
+      .setValue(true)
+    await wrapper
+      .findAll('[role="group"]')[0]!
+      .findAll('input')[0]!
+      .setValue(false)
+    expect(button(wrapper, 'quotaPools.split')).toBeUndefined()
+    await button(wrapper, 'quotaPools.saveAllocation').trigger('click')
+    await flushPromises()
+    expect(api.save).toHaveBeenCalledWith(
+      1,
+      expect.arrayContaining([
+        expect.objectContaining({ id: 1, account_ids: [2] })
+      ])
+    )
+  })
   it('rejects totals above 100% before sending a contract', async () => {
     const wrapper = render()
     await flushPromises()

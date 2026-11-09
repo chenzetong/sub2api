@@ -200,6 +200,13 @@ SELECT
 - Docker 场景下需把宿主机 Socket 挂载到容器内同路径
 - 详细步骤见：`deploy/DATAMANAGEMENTD_CN.md`
 
+### v0.2.20 upgrade
+
+容器内存较小或并发长上下文请求较多的部署，升级前请按实际情况调整
+`gateway.request_body_memory_budget_bytes`（默认 1 GiB），详见
+[EDGE_SECURITY.md](EDGE_SECURITY.md#sizing-the-request-body-budget)。
+上游升级说明中的 `security.request_body_memory_budget_bytes` 为误写，正确路径是 `gateway.*`。
+
 ### Commands
 
 For **local directory version** (docker-compose.local.yml):

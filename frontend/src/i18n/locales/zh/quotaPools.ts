@@ -4,6 +4,22 @@ export default {
   description:
     '按账号预测额度和合同份额分配权益。保存合同后，当前周期立即重算；同步余额单独执行。',
   readOnlyDescription: '只读查看有合同份额的混池账号、用量和统计。',
+  poolCount: '额度池',
+  assignedAccounts: '已分配来源账号',
+  participants: '参与车友',
+  allocation: '额度与合同',
+  workflowHint: '选择来源账号 → 分配合同份额 → 保存并预览余额',
+  selectedCount: '已选 {count} 个',
+  searchAccounts: '搜索来源账号',
+  selectAccount: '选择来源账号 {name}',
+  assignedElsewhere: '已被其他额度池使用',
+  estimatedQuota: '预测总额度',
+  noSourceAccounts: '暂无可用的来源账号。',
+  selectAccountHint: '请至少选择一个来源账号。',
+  splitHint: '勾选需要拆出的账号，再点击「拆出所选账号」。',
+  overAllocated: '合同份额合计不能超过 100%。',
+  unallocated: '未分配 {percent}%',
+  noShares: '添加车友，为其设置合同份额。',
   pool: '混池',
   poolName: '混池名称',
   schedule: '定时余额同步',
@@ -66,6 +82,12 @@ export default {
     invalid_prediction: '预测值无效',
     missing_account: '来源账号已失效',
     incomplete_prediction: '来源预测不完整，整笔跳过'
+  },
+  accountStates: {
+    disabled: '已禁用',
+    active: '正常',
+    inactive: '已停用',
+    error: '异常'
   },
   states: {
     preview: '预览',
