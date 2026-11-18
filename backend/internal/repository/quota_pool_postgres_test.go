@@ -105,6 +105,7 @@ func testQuotaPoolPostgres(t *testing.T, batch bool) {
 	}
 	if batch {
 		t.Run("multiple atomic logs and deduplicated retry", func(t *testing.T) {
+			db := poolPostgresDB(t)
 			f := poolPostgresFixture(t, db)
 			cmds := []*service.UsageBillingCommand{f.command(), f.command()}
 			repo := NewUsageBillingRepository(nil, db)
