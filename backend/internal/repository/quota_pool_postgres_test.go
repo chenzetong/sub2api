@@ -83,7 +83,51 @@ func (f *poolPGFixture) command() *service.UsageBillingCommand {
 }
 
 func TestQuotaPoolPostgres(t *testing.T) {
+	for _, batch := range []bool{false, true} {
+		t.Run(fmt.Sprintf("batch=%t", batch), func(t *testing.T) {
+			testQuotaPoolPostgres(t, batch)
+		})
+	}
+}
+
+func testQuotaPoolPostgres(t *testing.T, batch bool) {
 	db := poolPostgresDB(t)
+	apply := func(ctx context.Context, cmd *service.UsageBillingCommand) (*service.UsageBillingApplyResult, error) {
+		repo := NewUsageBillingRepository(nil, db)
+		if !batch {
+			return repo.Apply(ctx, cmd)
+		}
+		outcomes, err := repo.ApplyBatch(ctx, []*service.UsageBillingCommand{cmd})
+		if err != nil {
+			return nil, err
+		}
+		return outcomes[0].Result, outcomes[0].Err
+	}
+	if batch {
+		t.Run("multiple atomic logs and deduplicated retry", func(t *testing.T) {
+			f := poolPostgresFixture(t, db)
+			cmds := []*service.UsageBillingCommand{f.command(), f.command()}
+			repo := NewUsageBillingRepository(nil, db)
+			outcomes, err := repo.ApplyBatch(context.Background(), cmds)
+			require.NoError(t, err)
+			require.Equal(t, 60.0, f.balance(t))
+			for i, cmd := range cmds {
+				require.True(t, outcomes[i].Result.Applied)
+				require.True(t, cmd.AtomicUsageLog.PersistedWithBilling)
+				var count int
+				require.NoError(t, db.QueryRow("SELECT COUNT(*) FROM usage_logs WHERE request_id=$1", cmd.RequestID).Scan(&count))
+				require.Equal(t, 1, count)
+				cmd.AtomicUsageLog.PersistedWithBilling = false
+			}
+			outcomes, err = repo.ApplyBatch(context.Background(), cmds)
+			require.NoError(t, err)
+			require.Equal(t, 60.0, f.balance(t))
+			for i, cmd := range cmds {
+				require.False(t, outcomes[i].Result.Applied)
+				require.False(t, cmd.AtomicUsageLog.PersistedWithBilling)
+			}
+		})
+	}
 	t.Run("snapshot cutoff, zero reuse, idempotency, revocation", func(t *testing.T) {
 		f := poolPostgresFixture(t, db)
 		p, err := f.sync("first")
@@ -96,7 +140,7 @@ func TestQuotaPoolPostgres(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 123.0, f.balance(t))
 		cmd := f.command()
-		_, err = NewUsageBillingRepository(nil, db).Apply(context.Background(), cmd)
+		_, err = apply(context.Background(), cmd)
 		require.NoError(t, err)
 		require.True(t, cmd.AtomicUsageLog.PersistedWithBilling)
 		p, err = f.sync("second")
@@ -131,7 +175,7 @@ func TestQuotaPoolPostgres(t *testing.T) {
 			CREATE TRIGGER reject_pool_usage BEFORE INSERT ON usage_logs FOR EACH ROW EXECUTE FUNCTION reject_pool_usage()`)
 		require.NoError(t, err)
 		cmd := f.command()
-		_, err = NewUsageBillingRepository(nil, db).Apply(context.Background(), cmd)
+		_, err = apply(context.Background(), cmd)
 		require.Error(t, err)
 		require.Equal(t, 80.0, f.balance(t))
 		require.False(t, cmd.AtomicUsageLog.PersistedWithBilling)
@@ -140,7 +184,7 @@ func TestQuotaPoolPostgres(t *testing.T) {
 		require.Zero(t, count)
 		_, err = db.Exec("DROP TRIGGER reject_pool_usage ON usage_logs; DROP FUNCTION reject_pool_usage()")
 		require.NoError(t, err)
-		_, err = NewUsageBillingRepository(nil, db).Apply(context.Background(), cmd)
+		_, err = apply(context.Background(), cmd)
 		require.NoError(t, err)
 		require.Equal(t, 70.0, f.balance(t))
 	})
@@ -162,7 +206,7 @@ func TestQuotaPoolPostgres(t *testing.T) {
 		}()
 		billed := make(chan error, 1)
 		go func() {
-			_, e := NewUsageBillingRepository(nil, db).Apply(context.Background(), f.command())
+			_, e := apply(context.Background(), f.command())
 			billed <- e
 		}()
 		require.Eventually(t, func() bool {

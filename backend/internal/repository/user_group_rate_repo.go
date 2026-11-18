@@ -37,6 +37,42 @@ func (r *userGroupRateRepository) withWriteTransaction(ctx context.Context, fn f
 	return tx.Commit()
 }
 
+// dedupeGroupRateMultiplierEntries 按 user_id 去重，保留最后一次出现的值。
+// ON CONFLICT DO UPDATE 对同一行出现两次会直接报错，去重后才能安全写入。
+func dedupeGroupRateMultiplierEntries(entries []service.GroupRateMultiplierInput) []service.GroupRateMultiplierInput {
+	if len(entries) < 2 {
+		return entries
+	}
+	index := make(map[int64]int, len(entries))
+	out := make([]service.GroupRateMultiplierInput, 0, len(entries))
+	for _, entry := range entries {
+		if pos, ok := index[entry.UserID]; ok {
+			out[pos] = entry
+			continue
+		}
+		index[entry.UserID] = len(out)
+		out = append(out, entry)
+	}
+	return out
+}
+
+func dedupeGroupRPMOverrideEntries(entries []service.GroupRPMOverrideInput) []service.GroupRPMOverrideInput {
+	if len(entries) < 2 {
+		return entries
+	}
+	index := make(map[int64]int, len(entries))
+	out := make([]service.GroupRPMOverrideInput, 0, len(entries))
+	for _, entry := range entries {
+		if pos, ok := index[entry.UserID]; ok {
+			out[pos] = entry
+			continue
+		}
+		index[entry.UserID] = len(out)
+		out = append(out, entry)
+	}
+	return out
+}
+
 // GetByUserID 获取用户所有专属分组 rate_multiplier（仅返回非 NULL 的条目）
 func (r *userGroupRateRepository) GetByUserID(ctx context.Context, userID int64) (map[int64]float64, error) {
 	query := `SELECT group_id, rate_multiplier FROM user_group_rate_multipliers WHERE user_id = $1 AND rate_multiplier IS NOT NULL`
@@ -269,6 +305,8 @@ func (r *userGroupRateRepository) SyncGroupRateMultipliers(ctx context.Context, 
 }
 
 func syncGroupRateMultipliersWith(ctx context.Context, exec sqlExecutor, groupID int64, entries []service.GroupRateMultiplierInput) error {
+	entries = dedupeGroupRateMultiplierEntries(entries)
+
 	keepUserIDs := make([]int64, 0, len(entries))
 	for _, e := range entries {
 		keepUserIDs = append(keepUserIDs, e.UserID)
@@ -333,6 +371,8 @@ func (r *userGroupRateRepository) SyncGroupRPMOverrides(ctx context.Context, gro
 }
 
 func syncGroupRPMOverridesWith(ctx context.Context, exec sqlExecutor, groupID int64, entries []service.GroupRPMOverrideInput) error {
+	entries = dedupeGroupRPMOverrideEntries(entries)
+
 	keepUserIDs := make([]int64, 0, len(entries))
 	var clearUserIDs []int64
 	upsertUserIDs := make([]int64, 0, len(entries))
