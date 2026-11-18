@@ -15,6 +15,11 @@ on:
         required: false
         type: boolean
         default: false
+      simple_release:
+        description: 'Publish only the linux/amd64 GHCR image'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ github.repository }}
@@ -24,7 +29,7 @@ permissions:
   contents: read
 
 env:
-  SIMPLE_RELEASE: 'true'
+  SIMPLE_RELEASE: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.simple_release == true) }}
   DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true }}
 
 jobs:
