@@ -263,7 +263,11 @@ func TestCodexForkKeepsParentPromptCacheKeyUpstream(t *testing.T) {
 					httpUpstream:  upstream,
 					toolCorrector: NewCodexToolCorrector(),
 				}
-				account := newTestOAuthAccount(4501, map[string]any{"openai_oauth_passthrough": passthrough})
+				// Isolate account scoping from this fork's default full fingerprint convergence.
+				account := newTestOAuthAccount(4501, map[string]any{
+					"openai_oauth_passthrough": passthrough,
+					"codex_fingerprint_mode":   "off",
+				})
 				account.Status = StatusActive
 				account.Schedulable = true
 				account.Concurrency = 1
